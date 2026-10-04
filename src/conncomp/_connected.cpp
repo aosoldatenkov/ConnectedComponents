@@ -8,19 +8,6 @@
 
 namespace py = pybind11;
 
-py::list test_f(int width, py::array_t<double> vals) {
-    auto vals_buf = vals.unchecked<2>();
-    int sum = 0;
-    for (int i=0; i<width; ++i) {
-        sum += vals_buf(i, 0);
-    }
-    py::list out;
-    out.append(vals_buf.shape(0));
-    out.append(vals_buf.shape(1));
-    out.append(vals_buf(0, width - 1));
-    return out;
-}
-
 // ------------------------------------------------------------
 // Union–Find (Disjoint Set Union)
 // ------------------------------------------------------------
@@ -236,6 +223,8 @@ py::list components_batch(py::array_t<double, py::array::c_style | py::array::fo
     std::vector<std::vector<int>> results;
     results.resize(N);
 
+    if (N == 0) return py::list();
+
     // Determine number of threads
     unsigned int hw = std::thread::hardware_concurrency();
     int tcount = num_threads <= 0 ? (hw ? (int)hw : 1) : num_threads;
@@ -264,10 +253,10 @@ py::list components_batch(py::array_t<double, py::array::c_style | py::array::fo
         for (int t = 0; t < tcount; ++t) {
             int s = start_idx[t], e = end_idx[t];
             threads.emplace_back([s,e,W,N,vals_data,pat_data,&results](void) {
-                const int single_size = W * W;
+                const size_t single_size = (size_t)W * W;
                 for (int idx = s; idx < e; ++idx) {
                     // pointer to this array's data: offset = idx * W * W
-                    const double *vals_ptr = vals_data + idx * single_size;
+                    const double *vals_ptr = vals_data + (size_t)idx * single_size;
                     // pat is the same pointer for all arrays
                     auto res = compute_single_array(W, vals_ptr, pat_data);
                     results[idx] = std::move(res);
@@ -291,7 +280,7 @@ py::list components_batch(py::array_t<double, py::array::c_style | py::array::fo
 // ------------------------------------------------------------
 // Pybind11 module definition
 // ------------------------------------------------------------
-PYBIND11_MODULE(connected, m) {
+PYBIND11_MODULE(_connected, m) {
     m.doc() = "Optimized connected components formation using Union-Find (pybind11)";
     m.def("components", &components, py::arg("vals"), py::arg("pat"));
     m.def("components_batch", &components_batch,
@@ -299,5 +288,4 @@ PYBIND11_MODULE(connected, m) {
           "Find connected components for each 2D array in vals_batch (shape N x W x W) in parallel.\n"
           "pat must have shape (12,2,W,W). Returns a list of lists (one list per input array"
           "containing the sizes of the components).");
-    m.def("test_f", &test_f, py::arg("width"), py::arg("vals"));
 }

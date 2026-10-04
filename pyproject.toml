@@ -1,0 +1,65 @@
+[project]
+name = "conncomp"
+version = "0.1.0"
+description = "Counting connected components of real algebraic varieties (Hessian curves, parabolic curves) by randomized search"
+readme = "README.md"
+authors = [{ name = "Andrey Soldatenkov" }]
+requires-python = ">=3.12"
+dependencies = [
+    "numpy>=2.1",
+    "sympy>=1.13",
+    "torch>=2.8",
+    "matplotlib>=3.9",
+]
+
+[project.scripts]
+conncomp-search = "conncomp.search:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "ruff>=0.6",
+    "ipykernel>=6.29",
+]
+
+# ---------------------------------------------------------------------------
+# Build: the C++ union-find kernel (src/conncomp/_connected.cpp) is compiled
+# by scikit-build-core + CMake + pybind11 whenever uv (re)installs the package.
+# ---------------------------------------------------------------------------
+[build-system]
+requires = ["scikit-build-core>=0.10", "pybind11>=2.13"]
+build-backend = "scikit_build_core.build"
+
+[tool.scikit-build]
+minimum-version = "build-system.requires"
+cmake.build-type = "Release"
+wheel.packages = ["src/conncomp"]
+
+[tool.uv]
+# Rebuild the extension automatically when the C++ sources or build files change.
+cache-keys = [
+    { file = "pyproject.toml" },
+    { file = "CMakeLists.txt" },
+    { file = "src/conncomp/*.cpp" },
+]
+
+# PyTorch with CUDA 12.8 wheels (required for Blackwell GPUs such as the RTX 50xx).
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu128" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+
+[tool.ruff.lint]
+# Research/math code: single-letter variable names are intentional.
+select = ["E", "F", "W"]
+ignore = ["E741"]
