@@ -4,16 +4,21 @@ version = "0.1.0"
 description = "Counting connected components of real algebraic varieties (Hessian curves, parabolic curves) by randomized search"
 readme = "README.md"
 authors = [{ name = "Andrey Soldatenkov" }]
+license = {text = "MIT"}
 requires-python = ">=3.12"
 dependencies = [
     "numpy>=2.1",
     "sympy>=1.13",
     "torch>=2.8",
     "matplotlib>=3.9",
+    "python-flint>=0.7",
+    "contourpy>=1.2",
 ]
 
 [project.scripts]
 conncomp-search = "conncomp.search:main"
+conncomp-rationalize = "conncomp.rationalize:main"
+conncomp-certify = "conncomp.certify:main"
 
 [dependency-groups]
 dev = [

@@ -32,12 +32,18 @@ src/conncomp/
   components.py    Python wrapper around the extension
   scan.py          Experiment class, batch/center scans
   search.py        interactive curses search (`conncomp-search`)
+  rationalize.py   rational approximation + exact witness checks (`conncomp-rationalize`)
+  certify.py       exact segment/line certificates; oval upper bound from tangents of a pencil through a base point
+                   certified to lie outside all ovals; FLINT cross-check (`conncomp-certify`)
+  separation.py    exact lower bound: polygons separating the witnesses of different ovals
+  sphere.py        exact homogeneous-coordinate lattice on S^2 (cube surface) for single-curve work
   plotting.py      sign-region plots
   io.py            coefficient files
 scripts/explore.py           exploratory #%% cells
 benchmarks/bench_components.py
 tests/                       pytest suite
 data/                        coefficient vectors found by searches (one per line)
+data/certificates/           JSON certificate candidates (integer f, exact H, witness points)
 figures/                     plots of found curves
 papers/                      reference papers (local only, not tracked by git)
 ```
@@ -65,6 +71,8 @@ without an NVIDIA GPU, change the index in `pyproject.toml` to `https://download
 ```bash
 uv run conncomp-search --deg 6 --width 100 --batch 10000   # interactive search for Hessians of sextics; q to stop
 uv run conncomp-search --deg 5 --no-hessian                # components of f itself
+uv run conncomp-rationalize data/cache_H_deg5_<time>.txt --deg 5 --mode round   # integer approximations
+uv run conncomp-certify data/certificates/*.json     # smoothness + exact upper and lower bounds on the oval count
 uv run python benchmarks/bench_components.py
 ```
 

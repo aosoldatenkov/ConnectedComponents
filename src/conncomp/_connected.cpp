@@ -115,14 +115,11 @@ py::list components(py::array_t<double> vals, py::array_t<int> pat) {
 }
 
 // -------------------- Single-array computation (C++ data pointers) --------------------
-// vals_ptr points to contiguous int array of size W*W for a single item
+// vals_ptr points to contiguous double array of size W*W for a single item
 // pat_ptr points to contiguous int array of size 12*2*W*W (layout described below)
-static std::vector<int>
-compute_single_array(int W, const double *vals_ptr, const int *pat_ptr) {
-    const int Npos = W * W;
-    // labels for each point (flat index)
-    std::vector<int> labels(Npos, -1);
-    DSU dsu(Npos); // DSU over group labels (we will use group ids as consecutive ints)
+// Fills labels (size W*W) with group ids; dsu.find(label) gives the component root.
+static void
+label_single_array(int W, const double *vals_ptr, const int *pat_ptr, std::vector<int> &labels, DSU &dsu) {
     int next_group = 0;
 
     auto idx = [W](int i, int j) { return i * W + j; };
@@ -176,23 +173,58 @@ compute_single_array(int W, const double *vals_ptr, const int *pat_ptr) {
         }
     }
 
-    // ------------------------------------------------------------
-    // Compute group sizes
-    // ------------------------------------------------------------
+}
+
+// Sorted list of distinct component roots
+static std::vector<int> component_roots(const std::vector<int> &labels, DSU &dsu) {
     std::vector<int> roots;
-    for (int i = 0; i < W; ++i) {
-        for (int j = 0; j < W; ++j) {
-            int root = dsu.find(labels[idx(i, j)]);
-            roots.push_back(root);
-        }
-    }
+    roots.reserve(labels.size());
+    for (int L : labels) roots.push_back(dsu.find(L));
     std::sort(roots.begin(), roots.end());
     roots.erase(std::unique(roots.begin(), roots.end()), roots.end());
+    return roots;
+}
 
-    // Return vector of sizes of the connected components
+// Sizes of the connected components, in the order of their sorted roots
+static std::vector<int>
+compute_single_array(int W, const double *vals_ptr, const int *pat_ptr) {
+    std::vector<int> labels(W * W, -1);
+    DSU dsu(W * W);
+    label_single_array(W, vals_ptr, pat_ptr, labels, dsu);
     std::vector<int> out;
-    for (auto v : roots) out.push_back(dsu.size[v]);
+    for (int r : component_roots(labels, dsu)) out.push_back(dsu.size[r]);
     return out;
+}
+
+// ------------------------------------------------------------
+// Component labels of a single array: returns (labels[W, W], sizes), where
+// labels[i, j] is the index of the component of pixel (i, j) in sizes
+// (same order as the output of components / components_batch).
+// ------------------------------------------------------------
+py::tuple component_labels(py::array_t<double, py::array::c_style | py::array::forcecast> vals,
+                           py::array_t<int, py::array::c_style | py::array::forcecast> pat) {
+    py::buffer_info vb = vals.request();
+    py::buffer_info pb = pat.request();
+    if (vb.ndim != 2 || vb.shape[0] != vb.shape[1]) throw std::runtime_error("vals must be a 2D array (W, W)");
+    const int W = (int) vb.shape[0];
+    if (pb.ndim != 4 || (int)pb.shape[0] != 12 || (int)pb.shape[1] != 2 || (int)pb.shape[2] != W || (int)pb.shape[3] != W)
+        throw std::runtime_error("pat must have shape (12,2,W,W) with same W as vals");
+
+    std::vector<int> labels(W * W, -1);
+    DSU dsu(W * W);
+    label_single_array(W, static_cast<const double*>(vb.ptr), static_cast<const int*>(pb.ptr), labels, dsu);
+    std::vector<int> roots = component_roots(labels, dsu);
+
+    py::array_t<int> out_labels({W, W});
+    auto ol = out_labels.mutable_unchecked<2>();
+    for (int i = 0; i < W; ++i)
+        for (int j = 0; j < W; ++j) {
+            int r = dsu.find(labels[i * W + j]);
+            ol(i, j) = (int)(std::lower_bound(roots.begin(), roots.end(), r) - roots.begin());
+        }
+    py::list sizes;
+    for (int r : roots) sizes.append(dsu.size[r]);
+    return py::make_tuple(out_labels, sizes);
 }
 
 // -------------------- Batch parallel wrapper --------------------
@@ -283,6 +315,8 @@ py::list components_batch(py::array_t<double, py::array::c_style | py::array::fo
 PYBIND11_MODULE(_connected, m) {
     m.doc() = "Optimized connected components formation using Union-Find (pybind11)";
     m.def("components", &components, py::arg("vals"), py::arg("pat"));
+    m.def("component_labels", &component_labels, py::arg("vals"), py::arg("pat"),
+          "Component labels of a single array: returns (labels[W, W], sizes).");
     m.def("components_batch", &components_batch,
           py::arg("vals_batch"), py::arg("pat"), py::arg("num_threads") = -1,
           "Find connected components for each 2D array in vals_batch (shape N x W x W) in parallel.\n"

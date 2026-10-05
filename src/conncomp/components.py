@@ -17,6 +17,14 @@ def component_sizes(vals, pat, num_threads=-1):
     return _connected.components_batch(_as_numpy(vals), pat, num_threads)
 
 
+def component_labels(vals, pat):
+    """Labels of the sign components of a single grid `vals` (shape (W, W)).
+
+    Returns (labels, sizes): labels[i, j] is the index of the component of pixel (i, j) in `sizes`.
+    """
+    return _connected.component_labels(_as_numpy(vals), pat)
+
+
 def count_components(vals, pat, min_size=1, num_threads=-1):
     """Number of sign components with at least `min_size` pixels, for each grid in the batch.
 

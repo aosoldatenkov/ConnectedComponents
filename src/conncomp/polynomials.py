@@ -50,7 +50,29 @@ def evaluate(basis, coefs):
 
 
 def to_sympy(coefs, deg, x=None, y=None, z=None):
-    """The form with coefficient vector `coefs` as a sympy expression."""
+    """The form with coefficient vector `coefs` as a sympy expression (exact for int/Fraction coefficients).
+
+    Pass z=1 to get the affine polynomial f(x, y, 1).
+    """
     if x is None:
         x, y, z = sp.symbols("x y z")
-    return sum(float(c) * x**i * y**j * z**k for c, (i, j, k) in zip(coefs, monomials(deg)))
+    conv = float if isinstance(coefs[0], float) else sp.sympify
+    return sum(conv(c) * x**i * y**j * z**k for c, (i, j, k) in zip(coefs, monomials(deg)))
+
+
+def from_sympy(expr, deg, x=None, y=None, z=None):
+    """Coefficient vector (exact sympy numbers) of a polynomial in x, y (affine) or x, y, z (homogeneous).
+
+    An affine polynomial f(x, y) of degree <= deg is homogenized with z.
+    """
+    if x is None:
+        x, y, z = sp.symbols("x y z")
+    d = sp.Poly(sp.expand(expr), x, y, z).as_dict()
+    coefs = {}
+    for (i, j, k), c in d.items():
+        if k == 0 and i + j < deg:  # affine term: homogenize
+            k = deg - i - j
+        if i + j + k != deg:
+            raise ValueError(f"term x^{i} y^{j} z^{k} does not fit degree {deg}")
+        coefs[(i, j, k)] = c
+    return [coefs.get(m, sp.Integer(0)) for m in monomials(deg)]
