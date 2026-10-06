@@ -37,10 +37,11 @@ src/conncomp/
                    certified to lie outside all ovals; FLINT cross-check (`conncomp-certify`)
   separation.py    exact lower bound: polygons separating the witnesses of different ovals
   sphere.py        exact homogeneous-coordinate lattice on S^2 (cube surface) for single-curve work
-  plotting.py      sign-region plots
+  plotting.py      sign-region plots; certificate plots with separating polygons (`conncomp-plot`)
   io.py            coefficient files
 scripts/explore.py           exploratory #%% cells
 benchmarks/bench_components.py
+verify/verify_certificate.py standalone certificate verifier (python-flint + stdlib only)
 tests/                       pytest suite
 data/                        coefficient vectors found by searches (one per line)
 data/certificates/           JSON certificate candidates (integer f, exact H, witness points)
@@ -73,6 +74,8 @@ uv run conncomp-search --deg 6 --width 100 --batch 10000   # interactive search 
 uv run conncomp-search --deg 5 --no-hessian                # components of f itself
 uv run conncomp-rationalize data/cache_H_deg5_<time>.txt --deg 5 --mode round   # integer approximations
 uv run conncomp-certify data/certificates/*.json     # smoothness + exact upper and lower bounds on the oval count
+uv run conncomp-plot data/certificates/<file>.json -o out.png [--zoom U0 U1 V0 V1]
+uv run python verify/verify_certificate.py data/certificates/*.json   # independent re-check
 uv run python benchmarks/bench_components.py
 ```
 
@@ -83,3 +86,13 @@ from conncomp.plotting import plot_negative_regions
 found = batch_scan(deg=5, width=200, nsamples=10000, niter=10, lo=9)   # {component count: [coefs]}
 plot_negative_regions(5, 300, found[9][:4])
 ```
+
+## Certificates
+
+A certificate (`data/certificates/*.json`) proves that the Hessian curve of an integer form f has
+exactly k ovals in RP^2. It contains f, the exact Hessian H, witness points, a base point with a
+loop showing that it lies outside all ovals, the frame for the tangent count, and the separating
+polygons. `verify/verify_certificate.py` re-checks all of this independently of the `conncomp`
+code. It uses only python-flint, trusts nothing but the coefficients of f, and uses different
+algorithms (VCA and Arb root isolation, FLINT resultants, interpolated subresultants). The
+mathematical facts it relies on are listed in its docstring.

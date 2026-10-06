@@ -19,6 +19,7 @@ dependencies = [
 conncomp-search = "conncomp.search:main"
 conncomp-rationalize = "conncomp.rationalize:main"
 conncomp-certify = "conncomp.certify:main"
+conncomp-plot = "conncomp.plotting:main"
 
 [dependency-groups]
 dev = [

@@ -549,6 +549,20 @@ def crosscheck_flint(H, cert):
 # ---------------------------------------------------------------------------
 
 
+def add_affine_info(cert, H=None):
+    """Record whether the line at infinity z = 0 misses the curve (then all ovals are compact in R^2).
+
+    The affine plane is canonical here: an affine change of coordinates of f only rescales H(f).
+    """
+    H = H if H is not None else form_poly(cert["hessian"], cert["hessian_deg"])
+    avoids = certify_line(H, [1, 0, 0], [0, 1, 0]).ok
+    cert["affine"] = {
+        "line_at_infinity_avoids_curve": avoids,
+        "compact_ovals_in_R2": cert.get("proven_ovals") if avoids else None,
+    }
+    return cert
+
+
 def certify_file(path, base_point=None, n_base=4, n_frames=3, N=50, seed=0, verbose=False):
     """Certify the oval count of a certificate candidate JSON; writes the results back into it.
 
@@ -581,6 +595,7 @@ def certify_file(path, base_point=None, n_base=4, n_frames=3, N=50, seed=0, verb
     flint_ok = bool(upper.get("flint") and upper["flint"]["agree"])
     exact = upper.get("certified") and flint_ok and lower["valid"] and lower["lower_bound"] == upper["upper_bound"]
     cert["proven_ovals"] = upper["upper_bound"] if exact else None
+    add_affine_info(cert, H)
     Path(path).write_text(json.dumps(cert, indent=1))
     return cert
 
@@ -610,6 +625,7 @@ def main(argv=None):
             f"FLINT {'agrees' if flint_ok else 'DISAGREES'}); "
             f"lower {lo['lower_bound']} ({len(lo['paths'])} polygons, {sum(len(q['polygon']) for q in lo['paths'])} "
             f"segments) => {verdict}"
+            + (" (all compact in R^2)" if cert["affine"]["compact_ovals_in_R2"] else "")
         )
 
 
