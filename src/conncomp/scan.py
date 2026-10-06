@@ -55,16 +55,50 @@ def _scan(exp, draw, nsamples, niter, lo, filtr, noise=0.0):
     return save_coefs
 
 
-def batch_scan(deg, width, nsamples, niter, lo, filtr=6, use_hessian=True, noise=0.0):
+def batch_scan(deg, width, nsamples, niter, lo, filtr=6, use_hessian=True, noise=0.0, basis=None):
     """Sample uniformly random forms; return {component count: [coefficient vectors]} for counts >= lo.
 
     With `noise` > 0 (Hessian mode only), the Hessian coefficients are perturbed before counting.
+    With `basis` (e.g. conncomp.symmetry.symmetry("D3", deg).basis), only forms in its span are sampled.
     """
     exp = Experiment(deg, width, use_hessian)
-    return _scan(exp, lambda: sample(deg, nsamples), nsamples, niter, lo, filtr, noise)
+    return _scan(exp, lambda: sample(deg, nsamples, basis=basis), nsamples, niter, lo, filtr, noise)
 
 
-def center_scan(deg, width, center, r, nsamples, niter, lo, filtr=6, use_hessian=True):
+def center_scan(deg, width, center, r, nsamples, niter, lo, filtr=6, use_hessian=True, basis=None):
     """Like `batch_scan`, but sample Gaussian perturbations of radius `r` around `center`."""
     exp = Experiment(deg, width, use_hessian)
-    return _scan(exp, lambda: perturb(center, nsamples, r), nsamples, niter, lo, filtr)
+    return _scan(exp, lambda: perturb(center, nsamples, r, basis=basis), nsamples, niter, lo, filtr)
+
+
+def adaptive_scan(deg, width, batch, niter, filtr=3, use_hessian=True, basis=None, r=0.1, keep=100, seed=None,
+                  check_width=None):
+    """Non-interactive version of the search loop of conncomp.search.
+
+    Odd iterations perturb (radius r, within the span of `basis`) a randomly chosen form among the
+    best ones found so far; even iterations sample new random forms. Returns (best, histogram):
+    best is a list of up to `keep` pairs (ovals, coefficient vector), sorted by decreasing oval
+    count; histogram counts the oval numbers of all forms evaluated. A form only enters `best` if
+    its count is reproduced at `check_width` (default 2 * width), which filters out pixel noise of
+    nearly degenerate curves.
+    """
+    from collections import Counter
+    import random
+
+    rng = random.Random(seed)
+    exp = Experiment(deg, width, use_hessian)
+    check = Experiment(deg, check_width or 2 * width, use_hessian)
+    best, hist = [], Counter()
+    for it in range(niter):
+        if best and it % 2:
+            coefs = perturb(rng.choice(best)[1], batch, r, basis=basis)
+        else:
+            coefs = sample(deg, batch, basis=basis)
+        ovals = [n - 1 for n in exp.count(coefs, filtr)]
+        hist.update(ovals)
+        cpu = coefs.cpu().numpy()
+        top = sorted(range(len(ovals)), key=lambda j: -ovals[j])[:keep]
+        recount = [n - 1 for n in check.count(coefs[:, top], filtr)]
+        new = [(ovals[j], cpu[:, j]) for j, o2 in zip(top, recount) if o2 == ovals[j]]
+        best = sorted(best + new, key=lambda p: -p[0])[:keep]
+    return best, hist

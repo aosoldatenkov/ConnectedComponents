@@ -18,12 +18,13 @@ from conncomp import DEVICE
 from conncomp.io import save_coefs
 from conncomp.polynomials import perturb, sample
 from conncomp.scan import Experiment
+from conncomp.symmetry import symmetry
 
 CACHE_LEN = 1000
 PERTURB_RADIUS = 1e-1
 
 
-def loop(stdscr, deg, width, batch_size, filtr, use_hessian, out_path, min_comp=8):
+def loop(stdscr, deg, width, batch_size, filtr, use_hessian, out_path, min_comp=8, sym=None):
     """Run the search until `q` is pressed; returns the list of best coefficient vectors.
 
     Cache policy: cache1 always receives forms reaching the current maximum. cache0 receives
@@ -38,10 +39,13 @@ def loop(stdscr, deg, width, batch_size, filtr, use_hessian, out_path, min_comp=
     cache1 = deque([], CACHE_LEN)
     comp_counts = defaultdict(int)
     exp = Experiment(deg, width, use_hessian)
+    basis = sym.basis if sym is not None else None
 
     while True:
         stdscr.erase()
-        stdscr.addstr(0, 0, f"Using {DEVICE} device; {'Hessian of ' if use_hessian else ''}degree {deg}, width {width}")
+        sym_txt = f"; symmetry {sym.describe()}" if sym is not None else ""
+        stdscr.addstr(0, 0, f"Using {DEVICE} device; {'Hessian of ' if use_hessian else ''}degree {deg}, width {width}"
+                      + sym_txt)
         stdscr.addstr(1, 0, f"Iteration: {iteration};\t Total samples: {total_samples}")
         stdscr.addstr(2, 0, "Total counts: " + " ".join(f"{i}: {comp_counts[i]};" for i in sorted(comp_counts)))
         stdscr.addstr(3, 0, f"Cache 0: {len(cache0)};\t Cache 1: {len(cache1)}")
@@ -51,11 +55,11 @@ def loop(stdscr, deg, width, batch_size, filtr, use_hessian, out_path, min_comp=
 
         dice = random.randrange(3)
         if dice == 0 and cache0:
-            coefs = perturb(cache0.popleft(), batch_size, PERTURB_RADIUS)
+            coefs = perturb(cache0.popleft(), batch_size, PERTURB_RADIUS, basis)
         elif dice == 1 and cache1:
-            coefs = perturb(cache1[random.randrange(len(cache1))], batch_size, PERTURB_RADIUS)
+            coefs = perturb(cache1[random.randrange(len(cache1))], batch_size, PERTURB_RADIUS, basis)
         else:
-            coefs = sample(deg, batch_size)
+            coefs = sample(deg, batch_size, basis=basis)
 
         counts = exp.count(coefs, filtr)
         cpu_coefs = coefs.cpu().numpy()
@@ -88,14 +92,18 @@ def main(argv=None):
     p.add_argument("--batch", type=int, default=10000, help="forms per iteration (default: 10000)")
     p.add_argument("--filter", type=int, default=3, help="minimal component size in pixels (default: 3)")
     p.add_argument("--no-hessian", action="store_true", help="count components of f itself instead of H(f)")
+    p.add_argument("--symmetry", default=None,
+                   help="restrict to semi-invariant forms: x, x:-1, xy, diag, C3, D3, D4:1,-1, ... (conncomp.symmetry)")
     p.add_argument("--out", type=Path, default=None, help="output file (default: data/cache_<mode>_deg<d>_<time>.txt)")
     args = p.parse_args(argv)
 
     use_hessian = not args.no_hessian
+    sym = symmetry(args.symmetry, args.deg) if args.symmetry else None
     stamp = time.strftime("%Y%m%d-%H%M%S")
-    out = args.out or Path("data") / f"cache_{'H' if use_hessian else 'f'}_deg{args.deg}_{stamp}.txt"
+    tag = f"_sym-{args.symmetry.replace(':', '_').replace(',', '_')}" if sym else ""
+    out = args.out or Path("data") / f"cache_{'H' if use_hessian else 'f'}_deg{args.deg}{tag}_{stamp}.txt"
     random.seed()
-    best = cr.wrapper(loop, args.deg, args.width, args.batch, args.filter, use_hessian, out)
+    best = cr.wrapper(loop, args.deg, args.width, args.batch, args.filter, use_hessian, out, sym=sym)
     out.parent.mkdir(parents=True, exist_ok=True)
     save_coefs(out, best)
     print(f"Saved {len(best)} coefficient vectors to {out}")

@@ -4,6 +4,7 @@ A batch of N forms of degree d is stored as a coefficient tensor of shape
 (deg_to_dim(d), N); row i is the coefficient of monomials(d)[i].
 """
 
+import numpy as np
 import sympy as sp
 import torch
 
@@ -25,15 +26,35 @@ def normalize(coefs):
     return coefs.div_(coefs.norm(p=2, dim=0))
 
 
-def sample(deg, n, device=DEVICE):
-    """N forms of degree `deg` drawn uniformly from the unit sphere in coefficient space."""
-    return normalize(torch.randn((deg_to_dim(deg), n), dtype=DTYPE, device=device))
+def _basis_tensor(basis, device=DEVICE):
+    """Float tensor (D, k) of the basis columns, each scaled to unit norm."""
+    B = torch.as_tensor(np.asarray(basis, dtype=np.float64), dtype=DTYPE, device=device)
+    return B / B.norm(dim=0, keepdim=True)
 
 
-def perturb(center, n, r):
-    """N normalized Gaussian perturbations of radius `r` around the coefficient vector `center`."""
+def sample(deg, n, device=DEVICE, basis=None):
+    """N forms of degree `deg` drawn uniformly from the unit sphere in coefficient space.
+
+    With `basis` (integer matrix (D, k), e.g. conncomp.symmetry.Symmetry.basis), the forms are
+    random combinations B a of the (normalized) basis columns instead.
+    """
+    if basis is None:
+        return normalize(torch.randn((deg_to_dim(deg), n), dtype=DTYPE, device=device))
+    B = _basis_tensor(basis, device)
+    return normalize(B @ torch.randn((B.shape[1], n), dtype=DTYPE, device=device))
+
+
+def perturb(center, n, r, basis=None):
+    """N normalized Gaussian perturbations of radius `r` around the coefficient vector `center`.
+
+    With `basis`, the perturbations stay in the span of the basis (`center` should lie in it).
+    """
     c = torch.as_tensor(center, dtype=DTYPE, device=DEVICE).reshape(-1, 1)
-    return normalize(torch.randn((c.shape[0], n), dtype=DTYPE, device=DEVICE) * r + c)
+    if basis is None:
+        return normalize(torch.randn((c.shape[0], n), dtype=DTYPE, device=DEVICE) * r + c)
+    B = _basis_tensor(basis)
+    a = torch.linalg.pinv(B) @ c
+    return normalize(B @ (a + r * torch.randn((B.shape[1], n), dtype=DTYPE, device=DEVICE)))
 
 
 def monomial_basis(mons, pts):

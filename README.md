@@ -37,9 +37,11 @@ src/conncomp/
                    certified to lie outside all ovals; FLINT cross-check (`conncomp-certify`)
   separation.py    exact lower bound: polygons separating the witnesses of different ovals
   sphere.py        exact homogeneous-coordinate lattice on S^2 (cube surface) for single-curve work
+  symmetry.py      integer bases of semi-invariant forms (reflections, C_n, D_n, with sign characters)
   plotting.py      sign-region plots; certificate plots with separating polygons (`conncomp-plot`)
   io.py            coefficient files
 scripts/explore.py           exploratory #%% cells
+scripts/symmetric_scan.py    adaptive scans restricted to each symmetry class
 benchmarks/bench_components.py
 verify/verify_certificate.py standalone certificate verifier (python-flint + stdlib only)
 tests/                       pytest suite
@@ -72,6 +74,7 @@ without an NVIDIA GPU, change the index in `pyproject.toml` to `https://download
 ```bash
 uv run conncomp-search --deg 6 --width 100 --batch 10000   # interactive search for Hessians of sextics; q to stop
 uv run conncomp-search --deg 5 --no-hessian                # components of f itself
+uv run conncomp-search --deg 5 --symmetry x                 # only f(-x, y) = f(x, y); also x:-1, diag, D3, C4:-1, ...
 uv run conncomp-rationalize data/cache_H_deg5_<time>.txt --deg 5 --mode round   # integer approximations
 uv run conncomp-certify data/certificates/*.json     # smoothness + exact upper and lower bounds on the oval count
 uv run conncomp-plot data/certificates/<file>.json -o out.png [--zoom U0 U1 V0 V1]
@@ -96,3 +99,13 @@ polygons. `verify/verify_certificate.py` re-checks all of this independently of 
 code. It uses only python-flint, trusts nothing but the coefficients of f, and uses different
 algorithms (VCA and Arb root isolation, FLINT resultants, interpolated subresultants). The
 mathematical facts it relies on are listed in its docstring.
+
+## Symmetric forms
+
+If f o g = chi(g) f for a finite group G of linear maps and a sign character chi, then H(f) is
+G-invariant (H(f o g) = det(g)^2 H(f) o g). `conncomp.symmetry.symmetry(spec, deg)` returns an
+integer basis of such forms (spec e.g. `x`, `x:-1`, `xy`, `diag`, `C3`, `D3:1,-1`), and the search,
+the scans and `conncomp-rationalize --symmetry spec` stay inside that space. Some spaces are
+degenerate for a given degree. If no top-degree terms exist, H contains the line at infinity as a
+double line; if no quadratic terms exist, H is singular at the origin. These are flagged by
+`Symmetry.warnings()`.

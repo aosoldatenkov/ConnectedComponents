@@ -28,6 +28,7 @@ from conncomp.hessian import hessian_map
 from conncomp.io import load_coefs
 from conncomp.polynomials import monomials, to_sympy
 from conncomp.scan import Experiment
+from conncomp.symmetry import symmetry
 
 # ---------------------------------------------------------------------------
 # Continued fractions and candidate generation
@@ -62,7 +63,7 @@ def integer_vector(rationals):
     return [v // g for v in ints] if g > 1 else ints
 
 
-def candidates(c, mode="cf", max_scale=2000, tols=None):
+def candidates(c, mode="cf", max_scale=2000, tols=None, basis=None):
     """Integer approximations of the coefficient vector `c`, ordered by increasing height.
 
     mode "cf": each coefficient of c/max|c| is replaced by its first continued fraction
@@ -71,7 +72,19 @@ def candidates(c, mode="cf", max_scale=2000, tols=None):
     mode "round": round(s * c/max|c|) for s = 1, ..., max_scale (simultaneous approximation
         with a common denominator; usually gives smaller integers).
     Yields (integer vector, parameter) with the parameter being tol or s.
+
+    With `basis` (integer matrix (D, k)), the coordinates a of c = B a are approximated instead and
+    the candidates are B a_int: they lie exactly in the span (e.g. keep a symmetry).
     """
+    if basis is not None:
+        B = np.asarray(basis, dtype=np.int64)
+        a = np.linalg.lstsq(B.astype(np.float64), np.asarray(c, dtype=np.float64), rcond=None)[0]
+        for ints, param in candidates(a, mode, max_scale, tols):
+            v = [int(sum(int(B[r, k]) * ints[k] for k in range(B.shape[1]))) for r in range(B.shape[0])]
+            g = math.gcd(*v)
+            if g:
+                yield [e // g for e in v], param
+        return
     c = np.asarray(c, dtype=np.float64)
     c = c / np.abs(c).max()
     seen = set()
@@ -157,10 +170,11 @@ def float_oval_counts(c, deg, width, min_size=3):
 # ---------------------------------------------------------------------------
 
 
-def rationalize(c, deg, widths=(200, 400, 800), mode="cf", min_size=3, max_scale=2000, chunk=256):
+def rationalize(c, deg, widths=(200, 400, 800), mode="cf", min_size=3, max_scale=2000, chunk=256, basis=None):
     """Lowest-height integer approximation of f whose Hessian has the same grid counts as f.
 
     The coefficients of z^d, x z^(d-1), y z^(d-1) are set to zero first (they do not affect H).
+    With `basis`, the approximation is done in the coordinates of the basis (see `candidates`).
 
     The counts must agree at every width in `widths`. Candidates are screened in batches at
     widths[0] and the survivors are checked at the other widths. Returns a dict with keys
@@ -170,7 +184,7 @@ def rationalize(c, deg, widths=(200, 400, 800), mode="cf", min_size=3, max_scale
     c = np.asarray(c, dtype=np.float64) * np.array([i + j >= 2 for i, j, _ in monomials(deg)])
     target = {w: float_oval_counts(c[:, None], deg, w, min_size)[0] for w in widths}
     hdeg = 2 * deg - 4
-    gen = candidates(c, mode, max_scale)
+    gen = candidates(c, mode, max_scale, basis=basis)
     while True:
         batch = [x for _, x in zip(range(chunk), gen)]
         if not batch:
@@ -239,9 +253,12 @@ def witnesses(curve_coefs, curve_deg, width, min_size=3):
 # ---------------------------------------------------------------------------
 
 
-def certificate_candidate(c, deg, widths=(200, 400, 800), mode="cf", min_size=3, max_scale=2000):
-    """Run the approximation search and the witness checks. Returns a JSON-serializable dict or None."""
-    res = rationalize(c, deg, widths, mode, min_size, max_scale)
+def certificate_candidate(c, deg, widths=(200, 400, 800), mode="cf", min_size=3, max_scale=2000, sym=None):
+    """Run the approximation search and the witness checks. Returns a JSON-serializable dict or None.
+
+    With `sym` (conncomp.symmetry.Symmetry), the integer form is exactly semi-invariant.
+    """
+    res = rationalize(c, deg, widths, mode, min_size, max_scale, basis=sym.basis if sym is not None else None)
     if res is None:
         return None
     hdeg = 2 * deg - 4
@@ -258,6 +275,11 @@ def certificate_candidate(c, deg, widths=(200, 400, 800), mode="cf", min_size=3,
         "witnesses": wit,
         "witnesses_ok": all(w["exact_sign"] == w["sign"] for w in wit),
         "float_coefs": [float(v) for v in c],
+        "symmetry": None if sym is None else {
+            "group": sym.name,
+            "generators": [[[str(v) for v in g.row(r)] for r in range(2)] for g in sym.generators],
+            "character": sym.character,
+        },
     }
 
 
@@ -271,8 +293,10 @@ def main(argv=None):
     p.add_argument("--mode", choices=["cf", "round"], default="cf", help="approximation method (default: cf)")
     p.add_argument("--max-scale", type=int, default=2000, help="largest scale in round mode (default: 2000)")
     p.add_argument("--min-size", type=int, default=3, help="minimal component size in pixels (default: 3)")
+    p.add_argument("--symmetry", default=None, help="keep this symmetry exactly, e.g. x, D3, D4:1,-1")
     p.add_argument("--out-dir", type=Path, default=Path("data/certificates"), help="output directory")
     args = p.parse_args(argv)
+    sym = symmetry(args.symmetry, args.deg) if args.symmetry else None
 
     forms = load_coefs(args.file)
     if args.index:
@@ -287,7 +311,8 @@ def main(argv=None):
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
     for i in chosen:
-        cert = certificate_candidate(forms[i], args.deg, tuple(args.widths), args.mode, args.min_size, args.max_scale)
+        cert = certificate_candidate(forms[i], args.deg, tuple(args.widths), args.mode, args.min_size, args.max_scale,
+                                     sym)
         if cert is None:
             print(f"line {i}: no approximation reproduces the grid counts")
             continue
