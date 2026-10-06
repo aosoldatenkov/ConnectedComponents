@@ -2276,5 +2276,9 @@
   "failed": [],
   "valid": true
  },
- "proven_ovals": 9
+ "proven_ovals": 9,
+ "affine": {
+  "line_at_infinity_avoids_curve": false,
+  "compact_ovals_in_R2": null
+ }
 }
