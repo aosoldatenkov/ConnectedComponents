@@ -29,7 +29,8 @@ src/conncomp/
   polynomials.py   monomials, sampling, batched evaluation
   hessian.py       symbolic Hessian map and its batched application
   grid.py          RP^2 pixel grid and 12-neighbour pattern (8 adjacent + 4 antipodal)
-  components.py    Python wrapper around the extension
+  components.py    Python wrapper around the extension; CPU/GPU pipelining of the counts
+  euler.py         GPU pre-screen of oval counts via Euler characteristics on a sphere mesh
   scan.py          Experiment class, batch/center scans
   search.py        interactive curses search (`conncomp-search`)
   rationalize.py   rational approximation + exact witness checks (`conncomp-rationalize`)
@@ -42,7 +43,7 @@ src/conncomp/
   io.py            coefficient files
 scripts/explore.py           exploratory #%% cells
 scripts/symmetric_scan.py    adaptive scans restricted to each symmetry class
-benchmarks/bench_components.py
+benchmarks/bench_components.py, bench_search.py
 verify/verify_certificate.py standalone certificate verifier (python-flint + stdlib only)
 tests/                       pytest suite
 data/                        coefficient vectors found by searches (one per line)
@@ -72,14 +73,14 @@ without an NVIDIA GPU, change the index in `pyproject.toml` to `https://download
 ## Usage
 
 ```bash
-uv run conncomp-search --deg 6 --width 100 --batch 10000   # interactive search for Hessians of sextics; q to stop
+uv run conncomp-search --deg 6 --width 100                 # interactive search for Hessians of sextics; q to stop
 uv run conncomp-search --deg 5 --no-hessian                # components of f itself
 uv run conncomp-search --deg 5 --symmetry x                 # only f(-x, y) = f(x, y); also x:-1, diag, D3, C4:-1, ...
 uv run conncomp-rationalize data/cache_H_deg5_<time>.txt --deg 5 --mode round   # integer approximations
 uv run conncomp-certify data/certificates/*.json     # smoothness + exact upper and lower bounds on the oval count
 uv run conncomp-plot data/certificates/<file>.json -o out.png [--zoom U0 U1 V0 V1]
 uv run python verify/verify_certificate.py data/certificates/*.json   # independent re-check
-uv run python benchmarks/bench_components.py
+uv run python benchmarks/bench_components.py, bench_search.py
 ```
 
 ```python
@@ -109,3 +110,19 @@ the scans and `conncomp-rationalize --symmetry spec` stay inside that space. Som
 degenerate for a given degree. If no top-degree terms exist, H contains the line at infinity as a
 double line; if no quadratic terms exist, H is singular at the origin. These are flagged by
 `Symmetry.warnings()`.
+
+## Search throughput
+
+Each round of the search runs in three overlapping stages:
+1. GPU: sample forms, compute their Hessians, and estimate the oval counts. The estimate is the
+   Euler characteristic of the sign classes on a cube-surface mesh of S^2, computed with a fused
+   `torch.compile` kernel at about 2.6M forms/s.
+2. GPU: evaluate the forms that pass the screen (estimate >= best so far - slack) on the grid and
+   copy their uint8 signs to pinned memory.
+3. CPU (worker thread): exact union-find component counts, overlapped with stages 1-2 of the next
+   round.
+
+`benchmarks/bench_search.py` compares the variants. In degree 5 at width 100, a round of 1M forms
+takes about 0.6 s (about 1.6M forms/s), versus about 16k forms/s for a plain float64 copy plus
+counting. The screen undercounts nested ovals, so use `--no-screen` (or a larger
+`--screen-slack`) when nests matter.

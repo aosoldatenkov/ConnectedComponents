@@ -4,7 +4,7 @@ from collections import defaultdict
 
 import torch
 
-from conncomp.components import count_components
+from conncomp.components import CountPipeline, count_components
 from conncomp.grid import neighbour_pattern, sphere_points
 from conncomp.hessian import hessian
 from conncomp.polynomials import evaluate, monomial_basis, monomials, normalize, perturb, sample
@@ -35,23 +35,44 @@ class Experiment:
         """Values of the curve's equation on the grid; shape (N, width, width)."""
         return evaluate(self.basis, self.curve_coefs(coefs, noise))
 
+    def signs(self, coefs, noise=0.0, chunk=8192):
+        """uint8 sign classes (1 where the value is >= 0) on the grid, shape (N, width, width).
+
+        Evaluated in chunks of `chunk` forms, so the float64 values of the whole batch never need to be
+        in memory at once.
+        """
+        cc = self.curve_coefs(coefs, noise)
+        out = torch.empty((cc.shape[1], self.width, self.width), dtype=torch.uint8, device=cc.device)
+        for s in range(0, cc.shape[1], chunk):
+            out[s : s + chunk] = evaluate(self.basis, cc[:, s : s + chunk]) >= 0
+        return out
+
     def count(self, coefs, min_size, noise=0.0):
         """Number of sign components (with at least `min_size` pixels) for each form in the batch."""
-        return count_components(self.values(coefs, noise), self.pat, min_size)
+        return count_components(self.signs(coefs, noise).cpu().numpy(), self.pat, min_size)
 
 
 def _scan(exp, draw, nsamples, niter, lo, filtr, noise=0.0):
     comp_counts = defaultdict(int)
     save_coefs = defaultdict(list)
-    for it in range(niter):
-        coefs = draw()
-        counts = exp.count(coefs, filtr, noise)
+    pipe = CountPipeline(exp.pat, filtr)
+
+    def process(counts, coefs, it):
         cpu_coefs = coefs.cpu().numpy()
         for j, l in enumerate(counts):
             comp_counts[l] += 1
             if l >= lo:
                 save_coefs[l].append(cpu_coefs[:, j])
         print(it, " | " + " ".join(f"{k}: {comp_counts[k]};" for k in sorted(comp_counts)))
+
+    for it in range(niter):
+        coefs = draw()
+        pipe.submit(exp.signs(coefs, noise), (coefs, it))
+        for counts, (c, i) in pipe.results():
+            process(counts, c, i)
+    for counts, (c, i) in pipe.results(0):
+        process(counts, c, i)
+    pipe.close()
     return save_coefs
 
 
@@ -72,7 +93,7 @@ def center_scan(deg, width, center, r, nsamples, niter, lo, filtr=6, use_hessian
 
 
 def adaptive_scan(deg, width, batch, niter, filtr=3, use_hessian=True, basis=None, r=0.1, keep=100, seed=None,
-                  check_width=None):
+                  check_width=None, screen=None, slack=2, cap=50000):
     """Non-interactive version of the search loop of conncomp.search.
 
     Odd iterations perturb (radius r, within the span of `basis`) a randomly chosen form among the
@@ -81,6 +102,10 @@ def adaptive_scan(deg, width, batch, niter, filtr=3, use_hessian=True, basis=Non
     count; histogram counts the oval numbers of all forms evaluated. A form only enters `best` if
     its count is reproduced at `check_width` (default 2 * width), which filters out pixel noise of
     nearly degenerate curves.
+
+    With `screen` (conncomp.euler.EulerScreen), each batch is screened on the GPU and only the forms
+    with estimate >= (best count so far - slack), at most `cap`, are counted exactly; the histogram
+    then only covers those.
     """
     from collections import Counter
     import random
@@ -89,16 +114,34 @@ def adaptive_scan(deg, width, batch, niter, filtr=3, use_hessian=True, basis=Non
     exp = Experiment(deg, width, use_hessian)
     check = Experiment(deg, check_width or 2 * width, use_hessian)
     best, hist = [], Counter()
-    for it in range(niter):
-        if best and it % 2:
-            coefs = perturb(rng.choice(best)[1], batch, r, basis=basis)
-        else:
-            coefs = sample(deg, batch, basis=basis)
-        ovals = [n - 1 for n in exp.count(coefs, filtr)]
+    pipe = CountPipeline(exp.pat, filtr)
+
+    def process(counts, coefs):
+        nonlocal best
+        ovals = [n - 1 for n in counts]
         hist.update(ovals)
         cpu = coefs.cpu().numpy()
         top = sorted(range(len(ovals)), key=lambda j: -ovals[j])[:keep]
         recount = [n - 1 for n in check.count(coefs[:, top], filtr)]
         new = [(ovals[j], cpu[:, j]) for j, o2 in zip(top, recount) if o2 == ovals[j]]
         best = sorted(best + new, key=lambda p: -p[0])[:keep]
+
+    # the batch generated in iteration it uses the pool as known after iteration it - 2 (pipelining)
+    for it in range(niter):
+        if best and it % 2:
+            coefs = perturb(rng.choice(best)[1], batch, r, basis=basis)
+        else:
+            coefs = sample(deg, batch, basis=basis)
+        if screen is not None:
+            from conncomp.euler import select_candidates
+
+            top_count = best[0][0] if best else 0
+            coefs = coefs[:, select_candidates(screen.estimate(coefs), top_count - slack, cap)]
+        if coefs.shape[1]:
+            pipe.submit(exp.signs(coefs), coefs)
+        for counts, c in pipe.results():
+            process(counts, c)
+    for counts, c in pipe.results(0):
+        process(counts, c)
+    pipe.close()
     return best, hist

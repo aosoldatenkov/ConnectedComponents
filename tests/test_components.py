@@ -86,3 +86,51 @@ def test_hessian_matches_sympy(deg):
     H = (f.diff((0, 2)) * f.diff((1, 2)) - f.diff((0, 1), (1, 1)) ** 2).as_dict()
     expected = torch.tensor([float(H.get(m, 0)) for m in monomials(2 * deg - 4)], dtype=DTYPE)
     assert torch.allclose(h[:, 0].cpu(), expected, atol=1e-12)
+
+
+def test_sign_paths_agree(grid):
+    _, pat = grid
+    rng = np.random.default_rng(3)
+    vals = rng.standard_normal((6, WIDTH, WIDTH))
+    signs = (vals >= 0).astype(np.uint8)
+    sizes = _connected.components_batch(vals, pat)
+    assert _connected.components_batch_signs(signs, pat) == sizes
+    for m in (1, 3, 10):
+        assert _connected.count_components_batch(signs, pat, m).tolist() == [sum(s >= m for s in z) for z in sizes]
+
+
+def test_pipeline_matches_direct_count():
+    from conncomp.components import CountPipeline
+    from conncomp.scan import Experiment
+
+    exp = Experiment(5, 61, True)
+    batches = [sample(5, 7) for _ in range(4)]
+    pipe = CountPipeline(exp.pat, 3)
+    got = []
+    for i, c in enumerate(batches):
+        pipe.submit(exp.signs(c), i)
+        got += [(i, counts) for counts, i in pipe.results()]
+    got += [(i, counts) for counts, i in pipe.results(0)]
+    pipe.close()
+    assert [i for i, _ in got] == [0, 1, 2, 3]
+    for i, counts in got:
+        assert counts == exp.count(batches[i], 3)
+        assert counts == count_components(exp.values(batches[i]), exp.pat, 3)
+
+
+def test_signs_match_values():
+    from conncomp.scan import Experiment
+
+    exp = Experiment(5, 41, True)
+    c = sample(5, 20)
+    assert torch.equal(exp.signs(c, chunk=6), (exp.values(c) >= 0).to(torch.uint8))
+
+
+def test_count_bounded_batch():
+    H = W = 101
+    yy, xx = np.mgrid[0:H, 0:W]
+    disks = ((xx - 30) ** 2 + (yy - 30) ** 2 < 100) | ((xx - 70) ** 2 + (yy - 60) ** 2 < 150)
+    touching = disks | ((xx - 100) ** 2 + yy**2 < 200)  # a third disk touching the border does not count
+    ring = ((xx - 50) ** 2 + (yy - 50) ** 2 < 900) & ((xx - 50) ** 2 + (yy - 50) ** 2 > 400)  # ring + its hole
+    imgs = np.stack([disks, touching, ring]).astype(np.uint8)
+    assert _connected.count_bounded_batch(imgs, 1).tolist() == [2, 2, 2]

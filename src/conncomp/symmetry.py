@@ -91,11 +91,11 @@ def _primitive(v):
     return [s * c // g for c in v]
 
 
-def _rotation_family(n, deg, with_reflection, chi_rot, chi_ref):
+def _rotation_family(n, deg, with_reflection, chi_rot, chi_ref, min_deg=2):
     """Integer basis for C_n (or D_n with the reflection y -> -y) semi-invariants (zeta = x + i y)."""
     zeta, zbar = x + sp.I * y, x - sp.I * y
     cols = []
-    for m in range(2, deg + 1):
+    for m in range(min_deg, deg + 1):
         for b in range(m // 2 + 1):
             a = m - b
             q = a - b
@@ -130,7 +130,7 @@ def _action_matrix(g, deg):
     return sp.Matrix(cols).T
 
 
-def _linear_algebra_basis(generators, character, deg):
+def _linear_algebra_basis(generators, character, deg, drop_low=True):
     """Integer basis of {f : f o g = chi(g) f} (relevant blocks only) by exact linear algebra over QQ."""
     mons = monomials(deg)
     rows = []
@@ -139,7 +139,7 @@ def _linear_algebra_basis(generators, character, deg):
         rows.append(A)
     # drop the blocks of x, y-degree <= 1 (they do not affect the Hessian)
     for idx, (i, j, _) in enumerate(mons):
-        if i + j <= 1:
+        if drop_low and i + j <= 1:
             e = sp.zeros(1, len(mons))
             e[idx] = 1
             rows.append(e)
@@ -166,8 +166,11 @@ PRESETS = {
 }
 
 
-def symmetry(spec, deg):
-    """The Symmetry for a spec string such as "x", "x:-1", "D3", "D4:1,-1", "C3" (see module doc)."""
+def symmetry(spec, deg, for_hessian=True):
+    """The Symmetry for a spec string such as "x", "x:-1", "D3", "D4:1,-1", "C3" (see module doc).
+
+    With for_hessian=False the terms of x, y-degree <= 1 are kept (they matter for the curve f = 0 itself).
+    """
     name, _, signs = spec.partition(":")
     name = name.strip()
     if name in PRESETS:
@@ -181,10 +184,11 @@ def symmetry(spec, deg):
     if len(character) != len(gens) or any(c not in (1, -1) for c in character):
         raise ValueError(f"{spec!r}: give one sign +-1 per generator ({len(gens)})")
     if name in PRESETS:
-        cols = _linear_algebra_basis(gens, character, deg)
+        cols = _linear_algebra_basis(gens, character, deg, drop_low=for_hessian)
     else:
         n = int(name[1:])
-        cols = _rotation_family(n, deg, name[0] == "D", character[0], character[1] if name[0] == "D" else 1)
+        cols = _rotation_family(n, deg, name[0] == "D", character[0], character[1] if name[0] == "D" else 1,
+                                min_deg=2 if for_hessian else 0)
     if not cols:
         raise ValueError(f"{spec!r}: no semi-invariant forms of degree {deg} affect the Hessian")
     B = np.array(cols, dtype=np.int64).T

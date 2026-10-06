@@ -70,3 +70,11 @@ def test_degeneracy_warnings():
     assert symmetry("C4:-1", 5).effective_degree == 4
     assert symmetry("D3:1,-1", 5).singular_at_origin  # f = y (3 x^2 - y^2) (...)
     assert not symmetry("x", 5).warnings() and not symmetry("D3", 5).warnings()
+
+
+def test_bases_for_plain_curves():
+    # for the curve f = 0 itself the terms of x, y-degree <= 1 are kept
+    assert symmetry("xy", 6, for_hessian=False).dim == 10  # f = F(x^2, y^2, z^2)
+    assert symmetry("x", 6, for_hessian=False).dim == 16 and symmetry("x", 6).dim == 16 - 2
+    s = symmetry("D3", 6, for_hessian=False)
+    assert all(is_semi_invariant(col, 6, s) for col in s.basis.T)

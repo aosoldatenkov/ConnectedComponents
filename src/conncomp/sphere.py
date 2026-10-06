@@ -63,6 +63,32 @@ class CubeLattice:
         q = np.rint(P * self.N / np.abs(P).max()).astype(np.int64)
         return self.index[tuple(q.tolist())]
 
+    def faces(self):
+        """Unit squares of the cube surface as an (F, 4) index array (corners in cyclic order).
+
+        Together with `edges` this is a quad mesh of S^2 (V - E + F = 2), symmetric under p -> -p.
+        """
+        N, out = self.N, []
+        r = range(-N, N)
+        for axis in range(3):
+            o0, o1 = [b for b in range(3) if b != axis]
+            for s in (-N, N):
+                for u in r:
+                    for v in r:
+                        quad = []
+                        for du, dv in ((0, 0), (1, 0), (1, 1), (0, 1)):
+                            p = [0, 0, 0]
+                            p[axis], p[o0], p[o1] = s, u + du, v + dv
+                            quad.append(self.index[tuple(p)])
+                        out.append(quad)
+        return np.array(out, dtype=np.int64)
+
+    def edges(self):
+        """Edges of the quad mesh (see `faces`) as an (E, 2) index array."""
+        F = self.faces()
+        e = np.concatenate([F[:, [0, 1]], F[:, [1, 2]], F[:, [2, 3]], F[:, [3, 0]]])
+        return np.unique(np.sort(e, axis=1), axis=0)
+
     def values(self, terms):
         """Values of a form at the unit vectors p/|p|; `terms` is a list of ((i, j, k), coefficient)."""
         u = self.points / np.linalg.norm(self.points, axis=1, keepdims=True)
