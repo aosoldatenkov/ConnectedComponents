@@ -2,6 +2,7 @@
 
 from collections import defaultdict
 
+import numpy as np
 import torch
 
 from conncomp.components import CountPipeline, count_components
@@ -93,11 +94,13 @@ def center_scan(deg, width, center, r, nsamples, niter, lo, filtr=6, use_hessian
 
 
 def adaptive_scan(deg, width, batch, niter, filtr=3, use_hessian=True, basis=None, r=0.1, keep=100, seed=None,
-                  check_width=None, screen=None, slack=2, cap=50000):
+                  check_width=None, screen=None, slack=2, cap=50000, sampler=None):
     """Non-interactive version of the search loop of conncomp.search.
 
     Odd iterations perturb (radius r, within the span of `basis`) a randomly chosen form among the
-    best ones found so far; even iterations sample new random forms. Returns (best, histogram):
+    best ones found so far; even iterations sample new random forms, from `sampler(n)` if given
+    (e.g. degenerate seeds, conncomp.seeds.perturbed). r may be a pair (lo, hi): then each batch
+    uses a log-uniform radius in that range. Returns (best, histogram):
     best is a list of up to `keep` pairs (ovals, coefficient vector), sorted by decreasing oval
     count; histogram counts the oval numbers of all forms evaluated. A form only enters `best` if
     its count is reproduced at `check_width` (default 2 * width), which filters out pixel noise of
@@ -129,9 +132,10 @@ def adaptive_scan(deg, width, batch, niter, filtr=3, use_hessian=True, basis=Non
     # the batch generated in iteration it uses the pool as known after iteration it - 2 (pipelining)
     for it in range(niter):
         if best and it % 2:
-            coefs = perturb(rng.choice(best)[1], batch, r, basis=basis)
+            radius = r if not isinstance(r, tuple) else 10 ** rng.uniform(*np.log10(r))
+            coefs = perturb(rng.choice(best)[1], batch, radius, basis=basis)
         else:
-            coefs = sample(deg, batch, basis=basis)
+            coefs = sampler(batch) if sampler is not None else sample(deg, batch, basis=basis)
         if screen is not None:
             from conncomp.euler import select_candidates
 

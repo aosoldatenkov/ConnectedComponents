@@ -200,10 +200,10 @@ py::array_t<int> count_components_batch(py::array_t<uint8_t, py::array::c_style 
 // ------------------------------------------------------------
 // For each (H, W) uint8 sign image of a batch: the number of components with at least min_size
 // pixels that do not touch the image border (for a curve in an affine window: its compact ovals,
-// one bounded complementary region per oval). Class 1 uses 8-connectivity and class 0 uses
-// 4-connectivity (a consistent digital topology on the square grid).
+// one bounded complementary region per oval). The class `eight` (0 or 1) uses 8-connectivity and the
+// other class 4-connectivity (a consistent digital topology on the square grid).
 py::array_t<int> count_bounded_batch(py::array_t<uint8_t, py::array::c_style | py::array::forcecast> signs,
-                                     int min_size, int num_threads) {
+                                     int min_size, int num_threads, int eight) {
     py::buffer_info sb = signs.request();
     if (sb.ndim != 3) throw std::runtime_error("signs must have shape (N, H, W)");
     const int N = (int)sb.shape[0], H = (int)sb.shape[1], W = (int)sb.shape[2], P = H * W;
@@ -218,8 +218,8 @@ py::array_t<int> count_bounded_batch(py::array_t<uint8_t, py::array::c_style | p
                     const int p = i * W + j, c = img[p];
                     if (j + 1 < W && img[p + 1] == c) dsu.unite(p, p + 1);
                     if (i + 1 < H && img[p + W] == c) dsu.unite(p, p + W);
-                    if (c && i + 1 < H && j + 1 < W && img[p + W + 1]) dsu.unite(p, p + W + 1);
-                    if (c && i + 1 < H && j > 0 && img[p + W - 1]) dsu.unite(p, p + W - 1);
+                    if (c == eight && i + 1 < H && j + 1 < W && img[p + W + 1] == c) dsu.unite(p, p + W + 1);
+                    if (c == eight && i + 1 < H && j > 0 && img[p + W - 1] == c) dsu.unite(p, p + W - 1);
                 }
             std::vector<char> border(P, 0);
             for (int i = 0; i < H; ++i)
@@ -253,7 +253,7 @@ PYBIND11_MODULE(_connected, m) {
           "Number of components with at least min_size pixels for each uint8 sign array (0/1) of a batch "
           "(N, W, W), in parallel; returns an int32 array of length N.");
     m.def("count_bounded_batch", &count_bounded_batch, py::arg("signs"), py::arg("min_size") = 1,
-          py::arg("num_threads") = -1,
+          py::arg("num_threads") = -1, py::arg("eight") = 1,
           "Number of components (>= min_size pixels) not touching the border, for each (H, W) uint8 sign "
-          "image of a batch (N, H, W); class 1 is 8-connected, class 0 is 4-connected.");
+          "image of a batch (N, H, W); class `eight` is 8-connected, the other class 4-connected.");
 }
