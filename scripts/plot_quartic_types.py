@@ -2,7 +2,8 @@
 """Plots of the certified integer quartics of each nesting type (scripts/quartic_types.py).
 
 One image per form (sign regions, the curve, separating polygons, witnesses, the base point O with its loop) and one
-overview per mode, in figures/quartic_types/. The full certificates are read from pools/quartic_<mode>/cert_*.json;
+overview per mode; the overviews go to figures/quartic_types/ (tracked), the single images to
+pools/figures/quartic_types/ (untracked). The full certificates are read from pools/quartic_<mode>/cert_*.json;
 without them only the curve is drawn (from data/quartic_types/<mode>.json).
 
 The stereographic chart of conncomp.grid: the unit disk is a copy of RP^2 (antipodal points of the circle identified).
@@ -20,7 +21,8 @@ import matplotlib.pyplot as plt  # noqa: E402
 
 from conncomp.plotting import plot_certificate  # noqa: E402
 
-OUT = Path("figures/quartic_types")
+OUT = Path("figures/quartic_types")  # overviews (tracked)
+FORMS = Path("pools/figures/quartic_types")  # one image per form (untracked)
 TYPES = ["0", "1", "2", "1<1>", "3", "4"]
 
 
@@ -50,6 +52,7 @@ def title(mode, rep, short=False):
 
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
+    FORMS.mkdir(parents=True, exist_ok=True)
     ext = (-1.05, 1.05, -1.05, 1.05)
     for mode in ("plain", "hessian"):
         reps = json.loads(Path(f"data/quartic_types/{mode}.json").read_text())["representatives"]
@@ -70,7 +73,7 @@ def main():
                 expr = rep["hessian_affine"] if mode == "hessian" else rep["f_affine"]
                 lab = f"f = {rep['f_affine']}" + (f"\nH = {expr}" if mode == "hessian" else "")
                 fig.text(0.5, 0.01, lab.replace("**", "^").replace("*", ""), ha="center", fontsize=7, wrap=True)
-                fig.savefig(OUT / f"{mode}_{tag(t)}_{c + 1}.png", dpi=120, bbox_inches="tight")
+                fig.savefig(FORMS / f"{mode}_{tag(t)}_{c + 1}.png", dpi=120, bbox_inches="tight")
                 plt.close(fig)
                 plot_certificate(d, width=400, extent=ext, ax=ax, show_loop=False)
                 ax.set_title(title(mode, rep, short=True), fontsize=10)

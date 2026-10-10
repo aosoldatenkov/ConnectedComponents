@@ -1,0 +1,2896 @@
+{
+ "description": "Integer plane sextics (coefficients in the order of conncomp.polynomials.monomials(6)) of each nesting type found; oval count certified exactly (pencil tangents + separating polygons, FLINT cross-check); nesting from the signs of the pairwise separated witnesses and of the certified base point.",
+ "representatives": {
+  "0": [
+   {
+    "type": "0",
+    "ovals": 0,
+    "f": [
+     -3,
+     0,
+     -4,
+     0,
+     -4,
+     0,
+     -3,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     -3,
+     0,
+     -4,
+     0,
+     -4,
+     -1,
+     0,
+     1,
+     0,
+     -4,
+     0,
+     -3,
+     0,
+     0,
+     -4
+    ],
+    "height": 4,
+    "f_affine": "-4*x**6 - 3*x**4*y**2 - 4*x**4 + x**3*y**2 - x**3 - 4*x**2*y**4 - 4*x**2*y**2 - 3*x**2 - 3*y**6 - 4*y**4 - 4*y**2 - 3",
+    "pool_index": 0,
+    "robustness": 0.11552719374921966,
+    "certificate": {
+     "upper_bound": 0,
+     "upper_method": "pencil",
+     "lower_bound": 0,
+     "flint_agree": true,
+     "base_point": [
+      "4",
+      "3",
+      "50"
+     ],
+     "nesting": {
+      "sign_N": -1,
+      "separated_signs": [
+       -1
+      ]
+     }
+    }
+   },
+   {
+    "type": "0",
+    "ovals": 0,
+    "f": [
+     4,
+     -1,
+     1,
+     -2,
+     2,
+     0,
+     2,
+     -1,
+     0,
+     -1,
+     1,
+     1,
+     1,
+     2,
+     2,
+     2,
+     1,
+     1,
+     -1,
+     -1,
+     0,
+     0,
+     2,
+     -1,
+     2,
+     1,
+     0,
+     4
+    ],
+    "height": 4,
+    "f_affine": "4*x**6 + x**5 + 2*x**4*y**2 - x**4*y + 2*x**4 - x**3*y - x**3 + x**2*y**4 + x**2*y**3 + 2*x**2*y**2 + 2*x**2*y + 2*x**2 + x*y**5 + x*y**4 + x*y**3 - x*y**2 - x + 2*y**6 + 2*y**4 - 2*y**3 + y**2 - y + 4",
+    "pool_index": 500,
+    "robustness": 0.07817603608459535,
+    "certificate": {
+     "upper_bound": 0,
+     "upper_method": "pencil",
+     "lower_bound": 0,
+     "flint_agree": true,
+     "base_point": [
+      "50",
+      "15",
+      "-1"
+     ],
+     "nesting": {
+      "sign_N": 1,
+      "separated_signs": [
+       1
+      ]
+     }
+    }
+   },
+   {
+    "type": "0",
+    "ovals": 0,
+    "f": [
+     -1,
+     0,
+     -2,
+     0,
+     -3,
+     1,
+     -3,
+     1,
+     0,
+     -1,
+     0,
+     1,
+     1,
+     -2,
+     -1,
+     -2,
+     0,
+     -4,
+     -1,
+     -1,
+     0,
+     0,
+     -3,
+     -1,
+     -1,
+     -1,
+     -1,
+     -4
+    ],
+    "height": 4,
+    "f_affine": "-4*x**6 - x**5*y - x**5 - x**4*y**2 - x**4*y - 3*x**4 - x**3*y - x**3 - 4*x**2*y**4 - 2*x**2*y**2 - x**2*y - 2*x**2 + x*y**5 + x*y**4 - x*y**2 + x - 3*y**6 + y**5 - 3*y**4 - 2*y**2 - 1",
+    "pool_index": 501,
+    "robustness": 0.0766629017398252,
+    "certificate": {
+     "upper_bound": 0,
+     "upper_method": "pencil",
+     "lower_bound": 0,
+     "flint_agree": true,
+     "base_point": [
+      "2",
+      "50",
+      "-11"
+     ],
+     "nesting": {
+      "sign_N": -1,
+      "separated_signs": [
+       -1
+      ]
+     }
+    }
+   }
+  ],
+  "1<1>": [
+   {
+    "type": "1<1>",
+    "ovals": 2,
+    "f": [
+     -2,
+     0,
+     0,
+     0,
+     -2,
+     0,
+     -1,
+     1,
+     1,
+     0,
+     1,
+     1,
+     1,
+     2,
+     0,
+     -1,
+     0,
+     3,
+     0,
+     -1,
+     0,
+     -1,
+     5,
+     0,
+     4,
+     0,
+     0,
+     -1
+    ],
+    "height": 5,
+    "f_affine": "-x**6 + 4*x**4*y**2 + 5*x**4 - x**3*y**3 - x**3*y + 3*x**2*y**4 - x**2*y**2 + 2*x**2 + x*y**5 + x*y**4 + x*y**3 + x*y + x - y**6 - 2*y**4 - 2",
+    "pool_index": 0,
+    "robustness": 0.06654089575027312,
+    "certificate": {
+     "upper_bound": 2,
+     "upper_method": "pencil",
+     "lower_bound": 2,
+     "flint_agree": true,
+     "base_point": [
+      "-13",
+      "-20",
+      "50"
+     ],
+     "nesting": {
+      "sign_N": -1,
+      "separated_signs": [
+       -1,
+       1,
+       -1
+      ]
+     }
+    }
+   },
+   {
+    "type": "1<1>",
+    "ovals": 2,
+    "f": [
+     -2,
+     0,
+     1,
+     1,
+     -2,
+     0,
+     -1,
+     1,
+     0,
+     -2,
+     1,
+     0,
+     2,
+     2,
+     0,
+     0,
+     0,
+     3,
+     0,
+     -1,
+     -1,
+     -1,
+     5,
+     0,
+     3,
+     0,
+     0,
+     -1
+    ],
+    "height": 5,
+    "f_affine": "-x**6 + 3*x**4*y**2 + 5*x**4 - x**3*y**3 - x**3*y**2 - x**3*y + 3*x**2*y**4 + 2*x**2 + 2*x*y**5 + x*y**3 - 2*x*y**2 + x - y**6 - 2*y**4 + y**3 + y**2 - 2",
+    "pool_index": 55,
+    "robustness": 0.06334998700039356,
+    "certificate": {
+     "upper_bound": 2,
+     "upper_method": "pencil",
+     "lower_bound": 2,
+     "flint_agree": true,
+     "base_point": [
+      "1",
+      "15",
+      "50"
+     ],
+     "nesting": {
+      "sign_N": -1,
+      "separated_signs": [
+       -1,
+       1,
+       -1
+      ]
+     }
+    }
+   },
+   {
+    "type": "1<1>",
+    "ovals": 2,
+    "f": [
+     2,
+     0,
+     -1,
+     1,
+     0,
+     0,
+     2,
+     2,
+     -4,
+     -1,
+     -2,
+     0,
+     -4,
+     -4,
+     -4,
+     -3,
+     0,
+     -3,
+     -1,
+     1,
+     1,
+     0,
+     -4,
+     -1,
+     -4,
+     0,
+     2,
+     0
+    ],
+    "height": 4,
+    "f_affine": "2*x**5*y - 4*x**4*y**2 - x**4*y - 4*x**4 + x**3*y**2 + x**3*y - x**3 - 3*x**2*y**4 - 3*x**2*y**2 - 4*x**2*y - 4*x**2 - 4*x*y**5 - 2*x*y**3 - x*y**2 - 4*x*y + 2*x + 2*y**6 + y**3 - y**2 + 2",
+    "pool_index": 501,
+    "robustness": 0.04344797111631029,
+    "certificate": {
+     "upper_bound": 2,
+     "upper_method": "interior pencil",
+     "lower_bound": 2,
+     "flint_agree": true,
+     "base_point": [
+      "-14",
+      "50",
+      "-19"
+     ],
+     "nesting": {
+      "sign_N": 1,
+      "separated_signs": [
+       1,
+       -1,
+       1
+      ]
+     }
+    }
+   }
+  ],
+  "1<2>": [
+   {
+    "type": "1<2>",
+    "ovals": 3,
+    "f": [
+     -1,
+     -2,
+     0,
+     1,
+     2,
+     0,
+     0,
+     -1,
+     0,
+     0,
+     -2,
+     0,
+     1,
+     -1,
+     0,
+     0,
+     1,
+     1,
+     -2,
+     1,
+     4,
+     -2,
+     -1,
+     0,
+     -1,
+     -1,
+     1,
+     0
+    ],
+    "height": 4,
+    "f_affine": "x**5*y - x**5 - x**4*y**2 - x**4 - 2*x**3*y**3 + 4*x**3*y**2 + x**3*y - 2*x**3 + x**2*y**4 + x**2*y**3 - x**2 + x*y**5 - 2*x*y**3 - x + 2*y**4 + y**3 - 2*y - 1",
+    "pool_index": 44,
+    "robustness": 0.022473772871478462,
+    "certificate": {
+     "upper_bound": 3,
+     "upper_method": "interior pencil",
+     "lower_bound": 3,
+     "flint_agree": true,
+     "base_point": [
+      "-3",
+      "-1",
+      "50"
+     ],
+     "nesting": {
+      "sign_N": -1,
+      "separated_signs": [
+       -1,
+       1,
+       -1,
+       -1
+      ]
+     }
+    }
+   },
+   {
+    "type": "1<2>",
+    "ovals": 3,
+    "f": [
+     0,
+     1,
+     -1,
+     1,
+     1,
+     0,
+     0,
+     -2,
+     -3,
+     1,
+     -1,
+     4,
+     1,
+     2,
+     -3,
+     2,
+     0,
+     -1,
+     -2,
+     -1,
+     -3,
+     -4,
+     0,
+     -2,
+     2,
+     1,
+     1,
+     0
+    ],
+    "height": 4,
+    "f_affine": "x**5*y + x**5 + 2*x**4*y**2 - 2*x**4*y - 4*x**3*y**3 - 3*x**3*y**2 - x**3*y - 2*x**3 - x**2*y**4 + 2*x**2*y**2 - 3*x**2*y + 2*x**2 + x*y**5 + 4*x*y**4 - x*y**3 + x*y**2 - 3*x*y - 2*x + y**4 + y**3 - y**2 + y",
+    "pool_index": 62,
+    "robustness": 0.022266732606538442,
+    "certificate": {
+     "upper_bound": 3,
+     "upper_method": "interior pencil",
+     "lower_bound": 3,
+     "flint_agree": true,
+     "base_point": [
+      "-30",
+      "-16",
+      "-50"
+     ],
+     "nesting": {
+      "sign_N": -1,
+      "separated_signs": [
+       -1,
+       1,
+       -1,
+       -1
+      ]
+     }
+    }
+   },
+   {
+    "type": "1<2>",
+    "ovals": 3,
+    "f": [
+     0,
+     0,
+     2,
+     -1,
+     0,
+     -1,
+     0,
+     -1,
+     -1,
+     -3,
+     -3,
+     -1,
+     1,
+     -5,
+     1,
+     1,
+     2,
+     1,
+     -1,
+     6,
+     1,
+     1,
+     3,
+     2,
+     0,
+     0,
+     -2,
+     0
+    ],
+    "height": 6,
+    "f_affine": "-2*x**5*y + 2*x**4*y + 3*x**4 + x**3*y**3 + x**3*y**2 + 6*x**3*y - x**3 + x**2*y**4 + 2*x**2*y**3 + x**2*y**2 + x**2*y - 5*x**2 + x*y**5 - x*y**4 - 3*x*y**3 - 3*x*y**2 - x*y - x - y**5 - y**3 + 2*y**2",
+    "pool_index": 89,
+    "robustness": 0.021965916481797507,
+    "certificate": {
+     "upper_bound": 3,
+     "upper_method": "pencil",
+     "lower_bound": 3,
+     "flint_agree": true,
+     "base_point": [
+      "-20",
+      "0",
+      "-50"
+     ],
+     "nesting": {
+      "sign_N": -1,
+      "separated_signs": [
+       -1,
+       1,
+       -1,
+       -1
+      ]
+     }
+    }
+   }
+  ],
+  "1<3>": [
+   {
+    "type": "1<3>",
+    "ovals": 4,
+    "f": [
+     0,
+     2,
+     4,
+     -5,
+     -4,
+     0,
+     1,
+     -2,
+     -1,
+     4,
+     4,
+     -5,
+     -1,
+     4,
+     -1,
+     -4,
+     5,
+     -3,
+     6,
+     -2,
+     8,
+     -2,
+     -3,
+     -1,
+     5,
+     -2,
+     0,
+     0
+    ],
+    "height": 8,
+    "f_affine": "-2*x**5 + 5*x**4*y**2 - x**4*y - 3*x**4 - 2*x**3*y**3 + 8*x**3*y**2 - 2*x**3*y + 6*x**3 - 3*x**2*y**4 + 5*x**2*y**3 - 4*x**2*y**2 - x**2*y + 4*x**2 - x*y**5 - 5*x*y**4 + 4*x*y**3 + 4*x*y**2 - x*y - 2*x + y**6 - 4*y**4 - 5*y**3 + 4*y**2 + 2*y",
+    "pool_index": 0,
+    "robustness": 0.013942621991401121,
+    "certificate": {
+     "upper_bound": 4,
+     "upper_method": "interior pencil",
+     "lower_bound": 4,
+     "flint_agree": true,
+     "base_point": [
+      "50",
+      "44",
+      "-37"
+     ],
+     "nesting": {
+      "sign_N": -1,
+      "separated_signs": [
+       -1,
+       1,
+       -1,
+       -1,
+       -1
+      ]
+     }
+    }
+   },
+   {
+    "type": "1<3>",
+    "ovals": 4,
+    "f": [
+     1,
+     1,
+     -2,
+     -3,
+     3,
+     1,
+     0,
+     -2,
+     3,
+     -1,
+     -8,
+     0,
+     0,
+     -2,
+     -4,
+     -4,
+     6,
+     -1,
+     5,
+     1,
+     4,
+     0,
+     6,
+     1,
+     1,
+     -2,
+     0,
+     -1
+    ],
+    "height": 8,
+    "f_affine": "-x**6 - 2*x**5 + x**4*y**2 + x**4*y + 6*x**4 + 4*x**3*y**2 + x**3*y + 5*x**3 - x**2*y**4 + 6*x**2*y**3 - 4*x**2*y**2 - 4*x**2*y - 2*x**2 - 8*x*y**3 - x*y**2 + 3*x*y - 2*x + y**5 + 3*y**4 - 3*y**3 - 2*y**2 + y + 1",
+    "pool_index": 248,
+    "robustness": 0.011770007063789976,
+    "certificate": {
+     "upper_bound": 4,
+     "upper_method": "interior pencil",
+     "lower_bound": 4,
+     "flint_agree": true,
+     "base_point": [
+      "-50",
+      "16",
+      "-12"
+     ],
+     "nesting": {
+      "sign_N": -1,
+      "separated_signs": [
+       -1,
+       1,
+       -1,
+       -1,
+       -1
+      ]
+     }
+    }
+   },
+   {
+    "type": "1<3>",
+    "ovals": 4,
+    "f": [
+     0,
+     2,
+     -3,
+     0,
+     3,
+     0,
+     -1,
+     2,
+     -5,
+     6,
+     3,
+     -9,
+     0,
+     -4,
+     -11,
+     -3,
+     2,
+     1,
+     -6,
+     4,
+     12,
+     -5,
+     3,
+     4,
+     0,
+     1,
+     0,
+     -1
+    ],
+    "height": 12,
+    "f_affine": "-x**6 + x**5 + 4*x**4*y + 3*x**4 - 5*x**3*y**3 + 12*x**3*y**2 + 4*x**3*y - 6*x**3 + x**2*y**4 + 2*x**2*y**3 - 3*x**2*y**2 - 11*x**2*y - 4*x**2 - 9*x*y**4 + 3*x*y**3 + 6*x*y**2 - 5*x*y + 2*x - y**6 + 3*y**4 - 3*y**2 + 2*y",
+    "pool_index": 482,
+    "robustness": 0.010888703084147668,
+    "certificate": {
+     "upper_bound": 4,
+     "upper_method": "interior pencil",
+     "lower_bound": 4,
+     "flint_agree": true,
+     "base_point": [
+      "-43",
+      "50",
+      "8"
+     ],
+     "nesting": {
+      "sign_N": 1,
+      "separated_signs": [
+       -1,
+       1,
+       1,
+       1,
+       1
+      ]
+     }
+    }
+   }
+  ],
+  "1<4>": [],
+  "1<5>": [],
+  "1<6>": [],
+  "1": [
+   {
+    "type": "1",
+    "ovals": 1,
+    "f": [
+     -2,
+     -1,
+     1,
+     1,
+     0,
+     1,
+     2,
+     1,
+     -1,
+     0,
+     0,
+     -1,
+     0,
+     -4,
+     1,
+     0,
+     0,
+     1,
+     -1,
+     -1,
+     0,
+     -1,
+     -2,
+     0,
+     0,
+     0,
+     -1,
+     -3
+    ],
+    "height": 4,
+    "f_affine": "-3*x**6 - x**5*y - 2*x**4 - x**3*y**3 - x**3*y - x**3 + x**2*y**4 + x**2*y - 4*x**2 - x*y**4 - x*y + x + 2*y**6 + y**5 + y**3 + y**2 - y - 2",
+    "pool_index": 0,
+    "robustness": 0.20343697152740273,
+    "certificate": {
+     "upper_bound": 1,
+     "upper_method": "pencil",
+     "lower_bound": 1,
+     "flint_agree": true,
+     "base_point": [
+      "50",
+      "20",
+      "-10"
+     ],
+     "nesting": {
+      "sign_N": -1,
+      "separated_signs": [
+       -1,
+       1
+      ]
+     }
+    }
+   },
+   {
+    "type": "1",
+    "ovals": 1,
+    "f": [
+     -2,
+     -1,
+     0,
+     1,
+     0,
+     0,
+     4,
+     1,
+     0,
+     -1,
+     -1,
+     -1,
+     0,
+     -1,
+     0,
+     0,
+     -2,
+     2,
+     -1,
+     -1,
+     1,
+     -1,
+     1,
+     -1,
+     3,
+     -1,
+     1,
+     4
+    ],
+    "height": 4,
+    "f_affine": "4*x**6 + x**5*y - x**5 + 3*x**4*y**2 - x**4*y + x**4 - x**3*y**3 + x**3*y**2 - x**3*y - x**3 + 2*x**2*y**4 - 2*x**2*y**3 - x**2 - x*y**4 - x*y**3 - x*y**2 + x + 4*y**6 + y**3 - y - 2",
+    "pool_index": 69,
+    "robustness": 0.197052350802475,
+    "certificate": {
+     "upper_bound": 1,
+     "upper_method": "pencil",
+     "lower_bound": 1,
+     "flint_agree": true,
+     "base_point": [
+      "-50",
+      "14",
+      "2"
+     ],
+     "nesting": {
+      "sign_N": 1,
+      "separated_signs": [
+       1,
+       -1
+      ]
+     }
+    }
+   },
+   {
+    "type": "1",
+    "ovals": 1,
+    "f": [
+     -3,
+     -1,
+     1,
+     1,
+     1,
+     1,
+     2,
+     1,
+     -1,
+     0,
+     0,
+     -1,
+     0,
+     -4,
+     2,
+     0,
+     2,
+     0,
+     0,
+     -1,
+     1,
+     -2,
+     -3,
+     -1,
+     1,
+     0,
+     -2,
+     -3
+    ],
+    "height": 4,
+    "f_affine": "-3*x**6 - 2*x**5*y + x**4*y**2 - x**4*y - 3*x**4 - 2*x**3*y**3 + x**3*y**2 - x**3*y + 2*x**2*y**3 + 2*x**2*y - 4*x**2 - x*y**4 - x*y + x + 2*y**6 + y**5 + y**4 + y**3 + y**2 - y - 3",
+    "pool_index": 189,
+    "robustness": 0.1946345460633893,
+    "certificate": {
+     "upper_bound": 1,
+     "upper_method": "pencil",
+     "lower_bound": 1,
+     "flint_agree": true,
+     "base_point": [
+      "-13",
+      "-6",
+      "-50"
+     ],
+     "nesting": {
+      "sign_N": -1,
+      "separated_signs": [
+       -1,
+       1
+      ]
+     }
+    }
+   }
+  ],
+  "1 u 1<1>": [
+   {
+    "type": "1 u 1<1>",
+    "ovals": 3,
+    "f": [
+     0,
+     1,
+     -1,
+     -4,
+     2,
+     1,
+     0,
+     1,
+     1,
+     0,
+     -3,
+     -2,
+     1,
+     -1,
+     1,
+     1,
+     -1,
+     0,
+     0,
+     0,
+     0,
+     -1,
+     -2,
+     -1,
+     2,
+     0,
+     -1,
+     1
+    ],
+    "height": 4,
+    "f_affine": "x**6 - x**5*y + 2*x**4*y**2 - x**4*y - 2*x**4 - x**3*y**3 - x**2*y**3 + x**2*y**2 + x**2*y - x**2 + x*y**5 - 2*x*y**4 - 3*x*y**3 + x*y + x + y**5 + 2*y**4 - 4*y**3 - y**2 + y",
+    "pool_index": 0,
+    "robustness": 0.028392328225176133,
+    "certificate": {
+     "upper_bound": 3,
+     "upper_method": "pencil",
+     "lower_bound": 3,
+     "flint_agree": true,
+     "base_point": [
+      "-50",
+      "17",
+      "-19"
+     ],
+     "nesting": {
+      "sign_N": 1,
+      "separated_signs": [
+       1,
+       -1,
+       -1,
+       1
+      ],
+      "depth3_excluded_by_lines": [
+       [
+        3,
+        4,
+        -8
+       ],
+       [
+        2,
+        9,
+        -3
+       ]
+      ]
+     }
+    }
+   },
+   {
+    "type": "1 u 1<1>",
+    "ovals": 3,
+    "f": [
+     0,
+     -1,
+     2,
+     4,
+     -2,
+     -1,
+     0,
+     0,
+     0,
+     -2,
+     1,
+     2,
+     0,
+     -3,
+     2,
+     1,
+     2,
+     1,
+     0,
+     -2,
+     1,
+     0,
+     0,
+     1,
+     1,
+     -1,
+     0,
+     0
+    ],
+    "height": 4,
+    "f_affine": "-x**5 + x**4*y**2 + x**4*y + x**3*y**2 - 2*x**3*y + x**2*y**4 + 2*x**2*y**3 + x**2*y**2 + 2*x**2*y - 3*x**2 + 2*x*y**4 + x*y**3 - 2*x*y**2 - y**5 - 2*y**4 + 4*y**3 + 2*y**2 - y",
+    "pool_index": 5,
+    "robustness": 0.027536954453344576,
+    "certificate": {
+     "upper_bound": 3,
+     "upper_method": "pencil",
+     "lower_bound": 3,
+     "flint_agree": true,
+     "base_point": [
+      "50",
+      "-28",
+      "-28"
+     ],
+     "nesting": {
+      "sign_N": 1,
+      "separated_signs": [
+       1,
+       -1,
+       -1,
+       1
+      ],
+      "depth3_excluded_by_lines": [
+       [
+        3,
+        4,
+        -8
+       ],
+       [
+        3,
+        0,
+        6
+       ]
+      ]
+     }
+    }
+   },
+   {
+    "type": "1 u 1<1>",
+    "ovals": 3,
+    "f": [
+     0,
+     1,
+     -4,
+     -4,
+     3,
+     1,
+     0,
+     -1,
+     0,
+     1,
+     -2,
+     -2,
+     2,
+     -3,
+     0,
+     2,
+     -2,
+     1,
+     3,
+     -2,
+     -1,
+     -2,
+     2,
+     0,
+     0,
+     0,
+     -1,
+     0
+    ],
+    "height": 4,
+    "f_affine": "-x**5*y + 2*x**4 - 2*x**3*y**3 - x**3*y**2 - 2*x**3*y + 3*x**3 + x**2*y**4 - 2*x**2*y**3 + 2*x**2*y**2 - 3*x**2 + 2*x*y**5 - 2*x*y**4 - 2*x*y**3 + x*y**2 - x + y**5 + 3*y**4 - 4*y**3 - 4*y**2 + y",
+    "pool_index": 18,
+    "robustness": 0.027294648801453013,
+    "certificate": {
+     "upper_bound": 3,
+     "upper_method": "interior pencil",
+     "lower_bound": 3,
+     "flint_agree": true,
+     "base_point": [
+      "33",
+      "15",
+      "-50"
+     ],
+     "nesting": {
+      "sign_N": -1,
+      "separated_signs": [
+       -1,
+       1,
+       -1,
+       1
+      ],
+      "depth3_excluded_by_lines": [
+       [
+        3,
+        4,
+        -8
+       ],
+       [
+        3,
+        0,
+        6
+       ]
+      ]
+     }
+    }
+   }
+  ],
+  "1 u 1<2>": [
+   {
+    "type": "1 u 1<2>",
+    "ovals": 4,
+    "f": [
+     1,
+     -2,
+     -4,
+     4,
+     2,
+     -2,
+     0,
+     -1,
+     0,
+     2,
+     1,
+     3,
+     1,
+     2,
+     0,
+     3,
+     4,
+     -4,
+     -3,
+     -2,
+     -8,
+     -3,
+     -1,
+     -3,
+     2,
+     2,
+     0,
+     0
+    ],
+    "height": 8,
+    "f_affine": "2*x**5 + 2*x**4*y**2 - 3*x**4*y - x**4 - 3*x**3*y**3 - 8*x**3*y**2 - 2*x**3*y - 3*x**3 - 4*x**2*y**4 + 4*x**2*y**3 + 3*x**2*y**2 + 2*x**2 + x*y**5 + 3*x*y**4 + x*y**3 + 2*x*y**2 - x - 2*y**5 + 2*y**4 + 4*y**3 - 4*y**2 - 2*y + 1",
+    "pool_index": 0,
+    "robustness": 0.015043764818149992,
+    "certificate": {
+     "upper_bound": 4,
+     "upper_method": "pencil",
+     "lower_bound": 4,
+     "flint_agree": true,
+     "base_point": [
+      "-40",
+      "-18",
+      "50"
+     ],
+     "nesting": {
+      "sign_N": 1,
+      "separated_signs": [
+       -1,
+       1,
+       1,
+       1,
+       -1
+      ]
+     }
+    }
+   },
+   {
+    "type": "1 u 1<2>",
+    "ovals": 4,
+    "f": [
+     1,
+     0,
+     -14,
+     -1,
+     10,
+     1,
+     -2,
+     -1,
+     4,
+     1,
+     -13,
+     1,
+     -4,
+     8,
+     -8,
+     -7,
+     0,
+     6,
+     -5,
+     16,
+     -5,
+     14,
+     5,
+     3,
+     -7,
+     3,
+     -4,
+     1
+    ],
+    "height": 16,
+    "f_affine": "x**6 - 4*x**5*y + 3*x**5 - 7*x**4*y**2 + 3*x**4*y + 5*x**4 + 14*x**3*y**3 - 5*x**3*y**2 + 16*x**3*y - 5*x**3 + 6*x**2*y**4 - 7*x**2*y**2 - 8*x**2*y + 8*x**2 - 4*x*y**5 + x*y**4 - 13*x*y**3 + x*y**2 + 4*x*y - x - 2*y**6 + y**5 + 10*y**4 - y**3 - 14*y**2 + 1",
+    "pool_index": 1,
+    "robustness": 0.014654080352078198,
+    "certificate": {
+     "upper_bound": 4,
+     "upper_method": "pencil",
+     "lower_bound": 4,
+     "flint_agree": true,
+     "base_point": [
+      "50",
+      "8",
+      "-37"
+     ],
+     "nesting": {
+      "sign_N": 1,
+      "separated_signs": [
+       -1,
+       1,
+       -1,
+       1,
+       1
+      ]
+     }
+    }
+   },
+   {
+    "type": "1 u 1<2>",
+    "ovals": 4,
+    "f": [
+     0,
+     -1,
+     1,
+     4,
+     -2,
+     0,
+     0,
+     0,
+     1,
+     -2,
+     -1,
+     0,
+     -2,
+     -3,
+     5,
+     3,
+     -4,
+     -3,
+     1,
+     -1,
+     0,
+     3,
+     1,
+     -2,
+     2,
+     1,
+     -2,
+     0
+    ],
+    "height": 5,
+    "f_affine": "-2*x**5*y + x**5 + 2*x**4*y**2 - 2*x**4*y + x**4 + 3*x**3*y**3 - x**3*y + x**3 - 3*x**2*y**4 - 4*x**2*y**3 + 3*x**2*y**2 + 5*x**2*y - 3*x**2 - 2*x*y**5 - x*y**3 - 2*x*y**2 + x*y - 2*y**4 + 4*y**3 + y**2 - y",
+    "pool_index": 312,
+    "robustness": 0.012461235453778764,
+    "certificate": {
+     "upper_bound": 4,
+     "upper_method": "pencil",
+     "lower_bound": 4,
+     "flint_agree": true,
+     "base_point": [
+      "50",
+      "-36",
+      "23"
+     ],
+     "nesting": {
+      "sign_N": 1,
+      "separated_signs": [
+       1,
+       -1,
+       1,
+       -1,
+       1
+      ]
+     }
+    }
+   }
+  ],
+  "1 u 1<3>": [],
+  "1 u 1<4>": [],
+  "2": [
+   {
+    "type": "2",
+    "ovals": 2,
+    "f": [
+     -1,
+     2,
+     3,
+     0,
+     4,
+     -2,
+     -1,
+     0,
+     0,
+     -1,
+     0,
+     1,
+     0,
+     -2,
+     1,
+     0,
+     1,
+     -4,
+     0,
+     0,
+     0,
+     0,
+     1,
+     1,
+     0,
+     0,
+     1,
+     -4
+    ],
+    "height": 4,
+    "f_affine": "-4*x**6 + x**5*y + x**4*y + x**4 - 4*x**2*y**4 + x**2*y**3 + x**2*y - 2*x**2 + x*y**4 - x*y**2 - y**6 - 2*y**5 + 4*y**4 + 3*y**2 + 2*y - 1",
+    "pool_index": 0,
+    "robustness": 0.08507350730478407,
+    "certificate": {
+     "upper_bound": 2,
+     "upper_method": "pencil",
+     "lower_bound": 2,
+     "flint_agree": true,
+     "base_point": [
+      "50",
+      "-18",
+      "16"
+     ],
+     "nesting": {
+      "sign_N": -1,
+      "separated_signs": [
+       -1,
+       1,
+       1
+      ]
+     }
+    }
+   },
+   {
+    "type": "2",
+    "ovals": 2,
+    "f": [
+     1,
+     -2,
+     -1,
+     -1,
+     -4,
+     2,
+     1,
+     0,
+     0,
+     0,
+     0,
+     1,
+     0,
+     2,
+     -2,
+     1,
+     2,
+     2,
+     -1,
+     0,
+     -1,
+     -1,
+     0,
+     -1,
+     2,
+     1,
+     1,
+     2
+    ],
+    "height": 4,
+    "f_affine": "2*x**6 + x**5*y + x**5 + 2*x**4*y**2 - x**4*y - x**3*y**3 - x**3*y**2 - x**3 + 2*x**2*y**4 + 2*x**2*y**3 + x**2*y**2 - 2*x**2*y + 2*x**2 + x*y**4 + y**6 + 2*y**5 - 4*y**4 - y**3 - y**2 - 2*y + 1",
+    "pool_index": 3,
+    "robustness": 0.08348131769118579,
+    "certificate": {
+     "upper_bound": 2,
+     "upper_method": "pencil",
+     "lower_bound": 2,
+     "flint_agree": true,
+     "base_point": [
+      "-50",
+      "-28",
+      "-9"
+     ],
+     "nesting": {
+      "sign_N": 1,
+      "separated_signs": [
+       1,
+       -1,
+       -1
+      ]
+     }
+    }
+   },
+   {
+    "type": "2",
+    "ovals": 2,
+    "f": [
+     1,
+     0,
+     2,
+     1,
+     2,
+     0,
+     1,
+     0,
+     1,
+     1,
+     0,
+     2,
+     4,
+     1,
+     -1,
+     -2,
+     0,
+     -3,
+     1,
+     0,
+     3,
+     0,
+     3,
+     2,
+     0,
+     -1,
+     -4,
+     1
+    ],
+    "height": 4,
+    "f_affine": "x**6 - 4*x**5*y - x**5 + 2*x**4*y + 3*x**4 + 3*x**3*y**2 + x**3 - 3*x**2*y**4 - 2*x**2*y**2 - x**2*y + x**2 + 4*x*y**5 + 2*x*y**4 + x*y**2 + x*y + y**6 + 2*y**4 + y**3 + 2*y**2 + 1",
+    "pool_index": 4,
+    "robustness": 0.0833882101008502,
+    "certificate": {
+     "upper_bound": 2,
+     "upper_method": "pencil",
+     "lower_bound": 2,
+     "flint_agree": true,
+     "base_point": [
+      "-5",
+      "-50",
+      "-13"
+     ],
+     "nesting": {
+      "sign_N": 1,
+      "separated_signs": [
+       -1,
+       1,
+       -1
+      ]
+     }
+    }
+   }
+  ],
+  "2 u 1<1>": [
+   {
+    "type": "2 u 1<1>",
+    "ovals": 4,
+    "f": [
+     0,
+     -1,
+     1,
+     3,
+     0,
+     -1,
+     0,
+     0,
+     0,
+     -4,
+     1,
+     -1,
+     0,
+     1,
+     -2,
+     -3,
+     -3,
+     0,
+     2,
+     -4,
+     3,
+     -2,
+     -1,
+     -1,
+     -1,
+     -1,
+     1,
+     0
+    ],
+    "height": 4,
+    "f_affine": "x**5*y - x**5 - x**4*y**2 - x**4*y - x**4 - 2*x**3*y**3 + 3*x**3*y**2 - 4*x**3*y + 2*x**3 - 3*x**2*y**3 - 3*x**2*y**2 - 2*x**2*y + x**2 - x*y**4 + x*y**3 - 4*x*y**2 - y**5 + 3*y**3 + y**2 - y",
+    "pool_index": 0,
+    "robustness": 0.018408716063889816,
+    "certificate": {
+     "upper_bound": 4,
+     "upper_method": "pencil",
+     "lower_bound": 4,
+     "flint_agree": true,
+     "base_point": [
+      "50",
+      "26",
+      "25"
+     ],
+     "nesting": {
+      "sign_N": -1,
+      "separated_signs": [
+       1,
+       -1,
+       1,
+       -1,
+       1
+      ]
+     }
+    }
+   },
+   {
+    "type": "2 u 1<1>",
+    "ovals": 4,
+    "f": [
+     1,
+     -1,
+     -1,
+     -2,
+     1,
+     2,
+     0,
+     -1,
+     -3,
+     -1,
+     -1,
+     0,
+     -1,
+     0,
+     -1,
+     4,
+     -3,
+     2,
+     4,
+     4,
+     2,
+     4,
+     -1,
+     3,
+     -2,
+     -1,
+     -1,
+     0
+    ],
+    "height": 4,
+    "f_affine": "-x**5*y - x**5 - 2*x**4*y**2 + 3*x**4*y - x**4 + 4*x**3*y**3 + 2*x**3*y**2 + 4*x**3*y + 4*x**3 + 2*x**2*y**4 - 3*x**2*y**3 + 4*x**2*y**2 - x**2*y - x*y**5 - x*y**3 - x*y**2 - 3*x*y - x + 2*y**5 + y**4 - 2*y**3 - y**2 - y + 1",
+    "pool_index": 3,
+    "robustness": 0.018335722768216503,
+    "certificate": {
+     "upper_bound": 4,
+     "upper_method": "pencil",
+     "lower_bound": 4,
+     "flint_agree": true,
+     "base_point": [
+      "-2",
+      "11",
+      "50"
+     ],
+     "nesting": {
+      "sign_N": 1,
+      "separated_signs": [
+       1,
+       -1,
+       -1,
+       -1,
+       1
+      ]
+     }
+    }
+   },
+   {
+    "type": "2 u 1<1>",
+    "ovals": 4,
+    "f": [
+     1,
+     4,
+     5,
+     -5,
+     1,
+     1,
+     1,
+     -3,
+     4,
+     -10,
+     -6,
+     3,
+     1,
+     2,
+     -8,
+     -11,
+     0,
+     -7,
+     8,
+     -16,
+     -4,
+     0,
+     -4,
+     3,
+     7,
+     1,
+     0,
+     -1
+    ],
+    "height": 16,
+    "f_affine": "-x**6 + x**5 + 7*x**4*y**2 + 3*x**4*y - 4*x**4 - 4*x**3*y**2 - 16*x**3*y + 8*x**3 - 7*x**2*y**4 - 11*x**2*y**2 - 8*x**2*y + 2*x**2 + x*y**5 + 3*x*y**4 - 6*x*y**3 - 10*x*y**2 + 4*x*y - 3*x + y**6 + y**5 + y**4 - 5*y**3 + 5*y**2 + 4*y + 1",
+    "pool_index": 500,
+    "robustness": 0.009543816414902859,
+    "certificate": {
+     "upper_bound": 4,
+     "upper_method": "interior pencil",
+     "lower_bound": 4,
+     "flint_agree": true,
+     "base_point": [
+      "8",
+      "15",
+      "50"
+     ],
+     "nesting": {
+      "sign_N": 1,
+      "separated_signs": [
+       -1,
+       1,
+       1,
+       -1,
+       -1
+      ]
+     }
+    }
+   }
+  ],
+  "2 u 1<2>": [
+   {
+    "type": "2 u 1<2>",
+    "ovals": 5,
+    "f": [
+     1,
+     -2,
+     2,
+     8,
+     -3,
+     -1,
+     0,
+     2,
+     -9,
+     -20,
+     19,
+     4,
+     -2,
+     -3,
+     9,
+     -2,
+     -10,
+     -10,
+     -4,
+     14,
+     12,
+     3,
+     8,
+     0,
+     7,
+     0,
+     -3,
+     -4
+    ],
+    "height": 20,
+    "f_affine": "-4*x**6 - 3*x**5*y + 7*x**4*y**2 + 8*x**4 + 3*x**3*y**3 + 12*x**3*y**2 + 14*x**3*y - 4*x**3 - 10*x**2*y**4 - 10*x**2*y**3 - 2*x**2*y**2 + 9*x**2*y - 3*x**2 - 2*x*y**5 + 4*x*y**4 + 19*x*y**3 - 20*x*y**2 - 9*x*y + 2*x - y**5 - 3*y**4 + 8*y**3 + 2*y**2 - 2*y + 1",
+    "pool_index": 0,
+    "robustness": 0.005124178901632787,
+    "certificate": {
+     "upper_bound": 5,
+     "upper_method": "interior pencil",
+     "lower_bound": 5,
+     "flint_agree": true,
+     "base_point": [
+      "-46",
+      "50",
+      "21"
+     ],
+     "nesting": {
+      "sign_N": -1,
+      "separated_signs": [
+       -1,
+       1,
+       1,
+       -1,
+       1,
+       -1
+      ]
+     }
+    }
+   },
+   {
+    "type": "2 u 1<2>",
+    "ovals": 5,
+    "f": [
+     5,
+     12,
+     6,
+     -41,
+     39,
+     14,
+     3,
+     24,
+     -47,
+     112,
+     39,
+     42,
+     14,
+     -65,
+     128,
+     77,
+     -12,
+     -21,
+     -61,
+     110,
+     -110,
+     -100,
+     17,
+     -43,
+     -23,
+     11,
+     10,
+     -3
+    ],
+    "height": 128,
+    "f_affine": "-3*x**6 + 10*x**5*y + 11*x**5 - 23*x**4*y**2 - 43*x**4*y + 17*x**4 - 100*x**3*y**3 - 110*x**3*y**2 + 110*x**3*y - 61*x**3 - 21*x**2*y**4 - 12*x**2*y**3 + 77*x**2*y**2 + 128*x**2*y - 65*x**2 + 14*x*y**5 + 42*x*y**4 + 39*x*y**3 + 112*x*y**2 - 47*x*y + 24*x + 3*y**6 + 14*y**5 + 39*y**4 - 41*y**3 + 6*y**2 + 12*y + 5",
+    "pool_index": 501,
+    "robustness": 0.00013982511832246668,
+    "certificate": {
+     "upper_bound": 5,
+     "upper_method": "interior pencil",
+     "lower_bound": 5,
+     "flint_agree": true,
+     "base_point": [
+      "-12",
+      "-50",
+      "-37"
+     ],
+     "nesting": {
+      "sign_N": 1,
+      "separated_signs": [
+       -1,
+       1,
+       1,
+       -1,
+       -1,
+       1
+      ]
+     }
+    }
+   }
+  ],
+  "2 u 1<3>": [],
+  "3": [
+   {
+    "type": "3",
+    "ovals": 3,
+    "f": [
+     1,
+     -3,
+     0,
+     1,
+     2,
+     2,
+     0,
+     3,
+     3,
+     -1,
+     2,
+     -1,
+     0,
+     2,
+     -1,
+     2,
+     2,
+     3,
+     0,
+     -2,
+     0,
+     1,
+     4,
+     -1,
+     3,
+     -2,
+     -2,
+     0
+    ],
+    "height": 4,
+    "f_affine": "-2*x**5*y - 2*x**5 + 3*x**4*y**2 - x**4*y + 4*x**4 + x**3*y**3 - 2*x**3*y + 3*x**2*y**4 + 2*x**2*y**3 + 2*x**2*y**2 - x**2*y + 2*x**2 - x*y**4 + 2*x*y**3 - x*y**2 + 3*x*y + 3*x + 2*y**5 + 2*y**4 + y**3 - 3*y + 1",
+    "pool_index": 0,
+    "robustness": 0.059897491996844125,
+    "certificate": {
+     "upper_bound": 3,
+     "upper_method": "pencil",
+     "lower_bound": 3,
+     "flint_agree": true,
+     "base_point": [
+      "-32",
+      "23",
+      "-50"
+     ],
+     "nesting": {
+      "sign_N": 1,
+      "separated_signs": [
+       -1,
+       1,
+       -1,
+       -1
+      ]
+     }
+    }
+   },
+   {
+    "type": "3",
+    "ovals": 3,
+    "f": [
+     0,
+     -2,
+     -2,
+     1,
+     1,
+     2,
+     0,
+     1,
+     -1,
+     -1,
+     -1,
+     1,
+     0,
+     -2,
+     1,
+     -2,
+     -1,
+     -4,
+     2,
+     1,
+     -1,
+     -2,
+     -4,
+     -1,
+     -1,
+     -1,
+     2,
+     0
+    ],
+    "height": 4,
+    "f_affine": "2*x**5*y - x**5 - x**4*y**2 - x**4*y - 4*x**4 - 2*x**3*y**3 - x**3*y**2 + x**3*y + 2*x**3 - 4*x**2*y**4 - x**2*y**3 - 2*x**2*y**2 + x**2*y - 2*x**2 + x*y**4 - x*y**3 - x*y**2 - x*y + x + 2*y**5 + y**4 + y**3 - 2*y**2 - 2*y",
+    "pool_index": 2,
+    "robustness": 0.05867980234563582,
+    "certificate": {
+     "upper_bound": 3,
+     "upper_method": "pencil",
+     "lower_bound": 3,
+     "flint_agree": true,
+     "base_point": [
+      "50",
+      "-18",
+      "21"
+     ],
+     "nesting": {
+      "sign_N": -1,
+      "separated_signs": [
+       1,
+       -1,
+       1,
+       1
+      ]
+     }
+    }
+   },
+   {
+    "type": "3",
+    "ovals": 3,
+    "f": [
+     0,
+     1,
+     4,
+     0,
+     1,
+     0,
+     1,
+     -2,
+     1,
+     1,
+     -2,
+     0,
+     1,
+     2,
+     0,
+     3,
+     -2,
+     0,
+     2,
+     0,
+     4,
+     4,
+     2,
+     0,
+     -3,
+     0,
+     -3,
+     0
+    ],
+    "height": 4,
+    "f_affine": "-3*x**5*y - 3*x**4*y**2 + 2*x**4 + 4*x**3*y**3 + 4*x**3*y**2 + 2*x**3 - 2*x**2*y**3 + 3*x**2*y**2 + 2*x**2 + x*y**5 - 2*x*y**3 + x*y**2 + x*y - 2*x + y**6 + y**4 + 4*y**2 + y",
+    "pool_index": 52,
+    "robustness": 0.05506183314865502,
+    "certificate": {
+     "upper_bound": 3,
+     "upper_method": "pencil",
+     "lower_bound": 3,
+     "flint_agree": true,
+     "base_point": [
+      "6",
+      "40",
+      "50"
+     ],
+     "nesting": {
+      "sign_N": 1,
+      "separated_signs": [
+       -1,
+       1,
+       -1,
+       -1
+      ]
+     }
+    }
+   }
+  ],
+  "3 u 1<1>": [
+   {
+    "type": "3 u 1<1>",
+    "ovals": 5,
+    "f": [
+     -1,
+     -1,
+     -2,
+     3,
+     2,
+     -1,
+     0,
+     2,
+     0,
+     0,
+     -1,
+     1,
+     0,
+     2,
+     -4,
+     -3,
+     6,
+     3,
+     -5,
+     4,
+     1,
+     -1,
+     -1,
+     -1,
+     -3,
+     2,
+     0,
+     0
+    ],
+    "height": 6,
+    "f_affine": "2*x**5 - 3*x**4*y**2 - x**4*y - x**4 - x**3*y**3 + x**3*y**2 + 4*x**3*y - 5*x**3 + 3*x**2*y**4 + 6*x**2*y**3 - 3*x**2*y**2 - 4*x**2*y + 2*x**2 + x*y**4 - x*y**3 + 2*x - y**5 + 2*y**4 + 3*y**3 - 2*y**2 - y - 1",
+    "pool_index": 0,
+    "robustness": 0.011679169537027193,
+    "certificate": {
+     "upper_bound": 5,
+     "upper_method": "pencil",
+     "lower_bound": 5,
+     "flint_agree": true,
+     "base_point": [
+      "11",
+      "-30",
+      "-50"
+     ],
+     "nesting": {
+      "sign_N": -1,
+      "separated_signs": [
+       -1,
+       1,
+       1,
+       1,
+       -1,
+       1
+      ]
+     }
+    }
+   },
+   {
+    "type": "3 u 1<1>",
+    "ovals": 5,
+    "f": [
+     0,
+     0,
+     -3,
+     -2,
+     0,
+     1,
+     0,
+     -2,
+     2,
+     -8,
+     -6,
+     8,
+     1,
+     2,
+     1,
+     7,
+     -2,
+     -4,
+     5,
+     0,
+     -7,
+     1,
+     -3,
+     1,
+     -1,
+     -2,
+     0,
+     1
+    ],
+    "height": 8,
+    "f_affine": "x**6 - 2*x**5 - x**4*y**2 + x**4*y - 3*x**4 + x**3*y**3 - 7*x**3*y**2 + 5*x**3 - 4*x**2*y**4 - 2*x**2*y**3 + 7*x**2*y**2 + x**2*y + 2*x**2 + x*y**5 + 8*x*y**4 - 6*x*y**3 - 8*x*y**2 + 2*x*y - 2*x + y**5 - 2*y**3 - 3*y**2",
+    "pool_index": 10,
+    "robustness": 0.011327623895391114,
+    "certificate": {
+     "upper_bound": 5,
+     "upper_method": "pencil",
+     "lower_bound": 5,
+     "flint_agree": true,
+     "base_point": [
+      "-47",
+      "50",
+      "-8"
+     ],
+     "nesting": {
+      "sign_N": -1,
+      "separated_signs": [
+       1,
+       -1,
+       1,
+       1,
+       1,
+       -1
+      ]
+     }
+    }
+   },
+   {
+    "type": "3 u 1<1>",
+    "ovals": 5,
+    "f": [
+     -1,
+     1,
+     5,
+     -5,
+     -6,
+     0,
+     1,
+     0,
+     -10,
+     -4,
+     3,
+     -5,
+     2,
+     -6,
+     -1,
+     2,
+     1,
+     -3,
+     2,
+     14,
+     20,
+     -14,
+     2,
+     -3,
+     1,
+     -2,
+     3,
+     -1
+    ],
+    "height": 20,
+    "f_affine": "-x**6 + 3*x**5*y - 2*x**5 + x**4*y**2 - 3*x**4*y + 2*x**4 - 14*x**3*y**3 + 20*x**3*y**2 + 14*x**3*y + 2*x**3 - 3*x**2*y**4 + x**2*y**3 + 2*x**2*y**2 - x**2*y - 6*x**2 + 2*x*y**5 - 5*x*y**4 + 3*x*y**3 - 4*x*y**2 - 10*x*y + y**6 - 6*y**4 - 5*y**3 + 5*y**2 + y - 1",
+    "pool_index": 11,
+    "robustness": 0.011308184869503761,
+    "certificate": {
+     "upper_bound": 5,
+     "upper_method": "pencil",
+     "lower_bound": 5,
+     "flint_agree": true,
+     "base_point": [
+      "34",
+      "0",
+      "-50"
+     ],
+     "nesting": {
+      "sign_N": -1,
+      "separated_signs": [
+       -1,
+       1,
+       1,
+       -1,
+       1,
+       1
+      ]
+     }
+    }
+   }
+  ],
+  "4": [
+   {
+    "type": "4",
+    "ovals": 4,
+    "f": [
+     0,
+     0,
+     4,
+     -2,
+     2,
+     2,
+     1,
+     -2,
+     2,
+     2,
+     0,
+     -3,
+     1,
+     -3,
+     -1,
+     3,
+     -1,
+     -2,
+     4,
+     4,
+     1,
+     -3,
+     2,
+     -2,
+     0,
+     0,
+     -1,
+     1
+    ],
+    "height": 4,
+    "f_affine": "x**6 - x**5*y - 2*x**4*y + 2*x**4 - 3*x**3*y**3 + x**3*y**2 + 4*x**3*y + 4*x**3 - 2*x**2*y**4 - x**2*y**3 + 3*x**2*y**2 - x**2*y - 3*x**2 + x*y**5 - 3*x*y**4 + 2*x*y**2 + 2*x*y - 2*x + y**6 + 2*y**5 + 2*y**4 - 2*y**3 + 4*y**2",
+    "pool_index": 0,
+    "robustness": 0.03272788840016761,
+    "certificate": {
+     "upper_bound": 4,
+     "upper_method": "pencil",
+     "lower_bound": 4,
+     "flint_agree": true,
+     "base_point": [
+      "-50",
+      "4",
+      "7"
+     ],
+     "nesting": {
+      "sign_N": 1,
+      "separated_signs": [
+       -1,
+       1,
+       -1,
+       -1,
+       -1
+      ]
+     }
+    }
+   },
+   {
+    "type": "4",
+    "ovals": 4,
+    "f": [
+     1,
+     0,
+     1,
+     3,
+     -2,
+     -1,
+     0,
+     -1,
+     -1,
+     0,
+     2,
+     3,
+     1,
+     -1,
+     -4,
+     0,
+     0,
+     1,
+     -1,
+     -1,
+     0,
+     0,
+     3,
+     1,
+     2,
+     1,
+     0,
+     0
+    ],
+    "height": 4,
+    "f_affine": "x**5 + 2*x**4*y**2 + x**4*y + 3*x**4 - x**3*y - x**3 + x**2*y**4 - 4*x**2*y - x**2 + x*y**5 + 3*x*y**4 + 2*x*y**3 - x*y - x - y**5 - 2*y**4 + 3*y**3 + y**2 + 1",
+    "pool_index": 500,
+    "robustness": 0.020795973008900636,
+    "certificate": {
+     "upper_bound": 4,
+     "upper_method": "pencil",
+     "lower_bound": 4,
+     "flint_agree": true,
+     "base_point": [
+      "10",
+      "-5",
+      "50"
+     ],
+     "nesting": {
+      "sign_N": 1,
+      "separated_signs": [
+       1,
+       -1,
+       -1,
+       -1,
+       -1
+      ]
+     }
+    }
+   },
+   {
+    "type": "4",
+    "ovals": 4,
+    "f": [
+     0,
+     0,
+     3,
+     1,
+     -1,
+     -1,
+     0,
+     1,
+     0,
+     0,
+     3,
+     -3,
+     -1,
+     2,
+     -1,
+     0,
+     0,
+     0,
+     -3,
+     -2,
+     -3,
+     3,
+     1,
+     4,
+     4,
+     2,
+     0,
+     0
+    ],
+    "height": 4,
+    "f_affine": "2*x**5 + 4*x**4*y**2 + 4*x**4*y + x**4 + 3*x**3*y**3 - 3*x**3*y**2 - 2*x**3*y - 3*x**3 - x**2*y + 2*x**2 - x*y**5 - 3*x*y**4 + 3*x*y**3 + x - y**5 - y**4 + y**3 + 3*y**2",
+    "pool_index": 501,
+    "robustness": 0.020539320332961374,
+    "certificate": {
+     "upper_bound": 4,
+     "upper_method": "pencil",
+     "lower_bound": 4,
+     "flint_agree": true,
+     "base_point": [
+      "-50",
+      "28",
+      "37"
+     ],
+     "nesting": {
+      "sign_N": 1,
+      "separated_signs": [
+       1,
+       -1,
+       -1,
+       -1,
+       -1
+      ]
+     }
+    }
+   }
+  ],
+  "4 u 1<1>": [
+   {
+    "type": "4 u 1<1>",
+    "ovals": 6,
+    "f": [
+     0,
+     -2,
+     5,
+     -9,
+     -6,
+     3,
+     2,
+     -7,
+     14,
+     20,
+     -20,
+     -7,
+     2,
+     -8,
+     10,
+     27,
+     20,
+     -4,
+     5,
+     -22,
+     -32,
+     -9,
+     3,
+     -4,
+     9,
+     -1,
+     3,
+     0
+    ],
+    "height": 32,
+    "f_affine": "3*x**5*y - x**5 + 9*x**4*y**2 - 4*x**4*y + 3*x**4 - 9*x**3*y**3 - 32*x**3*y**2 - 22*x**3*y + 5*x**3 - 4*x**2*y**4 + 20*x**2*y**3 + 27*x**2*y**2 + 10*x**2*y - 8*x**2 + 2*x*y**5 - 7*x*y**4 - 20*x*y**3 + 20*x*y**2 + 14*x*y - 7*x + 2*y**6 + 3*y**5 - 6*y**4 - 9*y**3 + 5*y**2 - 2*y",
+    "pool_index": 0,
+    "robustness": 0.0028994114517591927,
+    "certificate": {
+     "upper_bound": 6,
+     "upper_method": "interior pencil",
+     "lower_bound": 6,
+     "flint_agree": true,
+     "base_point": [
+      "-50",
+      "38",
+      "12"
+     ],
+     "nesting": {
+      "sign_N": 1,
+      "separated_signs": [
+       1,
+       -1,
+       -1,
+       -1,
+       1,
+       -1,
+       -1
+      ]
+     }
+    }
+   }
+  ],
+  "5": [
+   {
+    "type": "5",
+    "ovals": 5,
+    "f": [
+     -1,
+     2,
+     -5,
+     -3,
+     4,
+     1,
+     0,
+     -1,
+     1,
+     -4,
+     0,
+     6,
+     0,
+     6,
+     0,
+     -6,
+     -3,
+     -1,
+     4,
+     -3,
+     0,
+     -4,
+     -5,
+     3,
+     -1,
+     -2,
+     3,
+     0
+    ],
+    "height": 6,
+    "f_affine": "3*x**5*y - 2*x**5 - x**4*y**2 + 3*x**4*y - 5*x**4 - 4*x**3*y**3 - 3*x**3*y + 4*x**3 - x**2*y**4 - 3*x**2*y**3 - 6*x**2*y**2 + 6*x**2 + 6*x*y**4 - 4*x*y**2 + x*y - x + y**5 + 4*y**4 - 3*y**3 - 5*y**2 + 2*y - 1",
+    "pool_index": 0,
+    "robustness": 0.02119675519179555,
+    "certificate": {
+     "upper_bound": 5,
+     "upper_method": "pencil",
+     "lower_bound": 5,
+     "flint_agree": true,
+     "base_point": [
+      "1",
+      "35",
+      "-50"
+     ],
+     "nesting": {
+      "sign_N": -1,
+      "separated_signs": [
+       1,
+       -1,
+       1,
+       1,
+       1,
+       1
+      ]
+     }
+    }
+   },
+   {
+    "type": "5",
+    "ovals": 5,
+    "f": [
+     0,
+     -1,
+     -4,
+     4,
+     5,
+     -1,
+     0,
+     1,
+     1,
+     -1,
+     4,
+     1,
+     1,
+     4,
+     -2,
+     2,
+     0,
+     2,
+     -1,
+     -5,
+     -2,
+     0,
+     -4,
+     2,
+     2,
+     0,
+     -1,
+     1
+    ],
+    "height": 5,
+    "f_affine": "x**6 - x**5*y + 2*x**4*y**2 + 2*x**4*y - 4*x**4 - 2*x**3*y**2 - 5*x**3*y - x**3 + 2*x**2*y**4 + 2*x**2*y**2 - 2*x**2*y + 4*x**2 + x*y**5 + x*y**4 + 4*x*y**3 - x*y**2 + x*y + x - y**5 + 5*y**4 + 4*y**3 - 4*y**2 - y",
+    "pool_index": 4,
+    "robustness": 0.0205099653368418,
+    "certificate": {
+     "upper_bound": 5,
+     "upper_method": "pencil",
+     "lower_bound": 5,
+     "flint_agree": true,
+     "base_point": [
+      "-25",
+      "-50",
+      "-29"
+     ],
+     "nesting": {
+      "sign_N": 1,
+      "separated_signs": [
+       1,
+       -1,
+       -1,
+       -1,
+       -1,
+       -1
+      ]
+     }
+    }
+   },
+   {
+    "type": "5",
+    "ovals": 5,
+    "f": [
+     0,
+     1,
+     2,
+     -3,
+     1,
+     2,
+     0,
+     -2,
+     -3,
+     0,
+     2,
+     1,
+     -2,
+     -3,
+     1,
+     1,
+     -1,
+     1,
+     4,
+     -1,
+     -1,
+     5,
+     5,
+     -1,
+     -1,
+     -1,
+     -1,
+     0
+    ],
+    "height": 5,
+    "f_affine": "-x**5*y - x**5 - x**4*y**2 - x**4*y + 5*x**4 + 5*x**3*y**3 - x**3*y**2 - x**3*y + 4*x**3 + x**2*y**4 - x**2*y**3 + x**2*y**2 + x**2*y - 3*x**2 - 2*x*y**5 + x*y**4 + 2*x*y**3 - 3*x*y - 2*x + 2*y**5 + y**4 - 3*y**3 + 2*y**2 + y",
+    "pool_index": 12,
+    "robustness": 0.020234082674066175,
+    "certificate": {
+     "upper_bound": 5,
+     "upper_method": "pencil",
+     "lower_bound": 5,
+     "flint_agree": true,
+     "base_point": [
+      "3",
+      "-50",
+      "-28"
+     ],
+     "nesting": {
+      "sign_N": 1,
+      "separated_signs": [
+       1,
+       -1,
+       -1,
+       -1,
+       -1,
+       -1
+      ]
+     }
+    }
+   }
+  ],
+  "6": [
+   {
+    "type": "6",
+    "ovals": 6,
+    "f": [
+     0,
+     -1,
+     -3,
+     2,
+     1,
+     -1,
+     0,
+     -1,
+     2,
+     4,
+     -1,
+     -4,
+     1,
+     -2,
+     1,
+     8,
+     1,
+     1,
+     3,
+     -2,
+     2,
+     -2,
+     -1,
+     -2,
+     -3,
+     -1,
+     1,
+     0
+    ],
+    "height": 8,
+    "f_affine": "x**5*y - x**5 - 3*x**4*y**2 - 2*x**4*y - x**4 - 2*x**3*y**3 + 2*x**3*y**2 - 2*x**3*y + 3*x**3 + x**2*y**4 + x**2*y**3 + 8*x**2*y**2 + x**2*y - 2*x**2 + x*y**5 - 4*x*y**4 - x*y**3 + 4*x*y**2 + 2*x*y - x - y**5 + y**4 + 2*y**3 - 3*y**2 - y",
+    "pool_index": 0,
+    "robustness": 0.0156732206939295,
+    "certificate": {
+     "upper_bound": 6,
+     "upper_method": "pencil",
+     "lower_bound": 6,
+     "flint_agree": true,
+     "base_point": [
+      "-17",
+      "28",
+      "50"
+     ],
+     "nesting": {
+      "sign_N": -1,
+      "separated_signs": [
+       1,
+       -1,
+       1,
+       1,
+       1,
+       1,
+       1
+      ]
+     }
+    }
+   },
+   {
+    "type": "6",
+    "ovals": 6,
+    "f": [
+     1,
+     0,
+     -5,
+     -3,
+     4,
+     2,
+     0,
+     0,
+     5,
+     1,
+     1,
+     1,
+     1,
+     2,
+     6,
+     -11,
+     1,
+     7,
+     0,
+     -12,
+     -2,
+     -3,
+     4,
+     -7,
+     -3,
+     0,
+     3,
+     0
+    ],
+    "height": 12,
+    "f_affine": "3*x**5*y - 3*x**4*y**2 - 7*x**4*y + 4*x**4 - 3*x**3*y**3 - 2*x**3*y**2 - 12*x**3*y + 7*x**2*y**4 + x**2*y**3 - 11*x**2*y**2 + 6*x**2*y + 2*x**2 + x*y**5 + x*y**4 + x*y**3 + x*y**2 + 5*x*y + 2*y**5 + 4*y**4 - 3*y**3 - 5*y**2 + 1",
+    "pool_index": 500,
+    "robustness": 0.00440324467521524,
+    "certificate": {
+     "upper_bound": 6,
+     "upper_method": "pencil",
+     "lower_bound": 6,
+     "flint_agree": true,
+     "base_point": [
+      "-42",
+      "-1",
+      "-50"
+     ],
+     "nesting": {
+      "sign_N": 1,
+      "separated_signs": [
+       1,
+       -1,
+       -1,
+       -1,
+       -1,
+       -1,
+       -1
+      ]
+     }
+    }
+   },
+   {
+    "type": "6",
+    "ovals": 6,
+    "f": [
+     -1,
+     -4,
+     1,
+     5,
+     -4,
+     -1,
+     0,
+     1,
+     1,
+     -7,
+     -12,
+     -3,
+     3,
+     -3,
+     5,
+     -10,
+     -5,
+     2,
+     0,
+     4,
+     10,
+     -3,
+     4,
+     -2,
+     -1,
+     0,
+     1,
+     -1
+    ],
+    "height": 12,
+    "f_affine": "-x**6 + x**5*y - x**4*y**2 - 2*x**4*y + 4*x**4 - 3*x**3*y**3 + 10*x**3*y**2 + 4*x**3*y + 2*x**2*y**4 - 5*x**2*y**3 - 10*x**2*y**2 + 5*x**2*y - 3*x**2 + 3*x*y**5 - 3*x*y**4 - 12*x*y**3 - 7*x*y**2 + x*y + x - y**5 - 4*y**4 + 5*y**3 + y**2 - 4*y - 1",
+    "pool_index": 501,
+    "robustness": 0.004388315473538488,
+    "certificate": {
+     "upper_bound": 6,
+     "upper_method": "pencil",
+     "lower_bound": 6,
+     "flint_agree": true,
+     "base_point": [
+      "31",
+      "44",
+      "50"
+     ],
+     "nesting": {
+      "sign_N": -1,
+      "separated_signs": [
+       -1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1
+      ]
+     }
+    }
+   }
+  ],
+  "7": [
+   {
+    "type": "7",
+    "ovals": 7,
+    "f": [
+     1,
+     -1,
+     3,
+     -6,
+     -1,
+     2,
+     1,
+     -2,
+     7,
+     11,
+     -11,
+     -3,
+     1,
+     -4,
+     6,
+     15,
+     8,
+     -4,
+     3,
+     -9,
+     -16,
+     -3,
+     3,
+     0,
+     6,
+     -1,
+     1,
+     0
+    ],
+    "height": 16,
+    "f_affine": "x**5*y - x**5 + 6*x**4*y**2 + 3*x**4 - 3*x**3*y**3 - 16*x**3*y**2 - 9*x**3*y + 3*x**3 - 4*x**2*y**4 + 8*x**2*y**3 + 15*x**2*y**2 + 6*x**2*y - 4*x**2 + x*y**5 - 3*x*y**4 - 11*x*y**3 + 11*x*y**2 + 7*x*y - 2*x + y**6 + 2*y**5 - y**4 - 6*y**3 + 3*y**2 - y + 1",
+    "pool_index": 0,
+    "robustness": 0.00422461639117148,
+    "certificate": {
+     "upper_bound": 7,
+     "upper_method": "pencil",
+     "lower_bound": 7,
+     "flint_agree": true,
+     "base_point": [
+      "-50",
+      "49",
+      "14"
+     ],
+     "nesting": {
+      "sign_N": 1,
+      "separated_signs": [
+       1,
+       -1,
+       -1,
+       -1,
+       -1,
+       -1,
+       -1,
+       -1
+      ]
+     }
+    }
+   },
+   {
+    "type": "7",
+    "ovals": 7,
+    "f": [
+     -1,
+     1,
+     7,
+     0,
+     -18,
+     12,
+     -2,
+     4,
+     -7,
+     24,
+     -5,
+     -9,
+     1,
+     -8,
+     23,
+     -35,
+     -40,
+     1,
+     -14,
+     -2,
+     -10,
+     -5,
+     13,
+     -11,
+     8,
+     8,
+     8,
+     -5
+    ],
+    "height": 40,
+    "f_affine": "-5*x**6 + 8*x**5*y + 8*x**5 + 8*x**4*y**2 - 11*x**4*y + 13*x**4 - 5*x**3*y**3 - 10*x**3*y**2 - 2*x**3*y - 14*x**3 + x**2*y**4 - 40*x**2*y**3 - 35*x**2*y**2 + 23*x**2*y - 8*x**2 + x*y**5 - 9*x*y**4 - 5*x*y**3 + 24*x*y**2 - 7*x*y + 4*x - 2*y**6 + 12*y**5 - 18*y**4 + 7*y**2 + y - 1",
+    "pool_index": 33,
+    "robustness": 0.0037210410138550456,
+    "certificate": {
+     "upper_bound": 7,
+     "upper_method": "pencil",
+     "lower_bound": 7,
+     "flint_agree": true,
+     "base_point": [
+      "5",
+      "50",
+      "-44"
+     ],
+     "nesting": {
+      "sign_N": -1,
+      "separated_signs": [
+       1,
+       -1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1
+      ]
+     }
+    }
+   },
+   {
+    "type": "7",
+    "ovals": 7,
+    "f": [
+     -4,
+     6,
+     18,
+     -5,
+     -18,
+     4,
+     0,
+     -5,
+     -6,
+     17,
+     -18,
+     -17,
+     0,
+     -1,
+     -15,
+     -19,
+     -4,
+     -3,
+     -5,
+     40,
+     30,
+     15,
+     0,
+     -14,
+     -9,
+     3,
+     -2,
+     -1
+    ],
+    "height": 40,
+    "f_affine": "-x**6 - 2*x**5*y + 3*x**5 - 9*x**4*y**2 - 14*x**4*y + 15*x**3*y**3 + 30*x**3*y**2 + 40*x**3*y - 5*x**3 - 3*x**2*y**4 - 4*x**2*y**3 - 19*x**2*y**2 - 15*x**2*y - x**2 - 17*x*y**4 - 18*x*y**3 + 17*x*y**2 - 6*x*y - 5*x + 4*y**5 - 18*y**4 - 5*y**3 + 18*y**2 + 6*y - 4",
+    "pool_index": 433,
+    "robustness": 0.002601528269924432,
+    "certificate": {
+     "upper_bound": 7,
+     "upper_method": "pencil",
+     "lower_bound": 7,
+     "flint_agree": true,
+     "base_point": [
+      "-50",
+      "48",
+      "12"
+     ],
+     "nesting": {
+      "sign_N": -1,
+      "separated_signs": [
+       -1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1
+      ]
+     }
+    }
+   }
+  ]
+ }
+}
