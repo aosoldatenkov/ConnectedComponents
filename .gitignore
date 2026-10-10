@@ -26,3 +26,6 @@ output/
 
 # --- Local project notes (not tracked) ---
 project.md
+
+# --- Large pools / intermediate results (not tracked) ---
+pools/

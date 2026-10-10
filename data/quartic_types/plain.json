@@ -1,0 +1,660 @@
+{
+ "mode": "plain",
+ "description": "Integer quartic forms (coefficients in the order of conncomp.polynomials.monomials(4)) of each nesting type; oval count certified exactly (pencil tangents + separating polygons, FLINT cross-check), nesting by the sign of the region containing the certified base point.",
+ "representatives": {
+  "0": [
+   {
+    "type": "0",
+    "f": [
+     2,
+     -1,
+     2,
+     2,
+     2,
+     0,
+     0,
+     -1,
+     0,
+     1,
+     -1,
+     1,
+     0,
+     0,
+     3
+    ],
+    "height": 3,
+    "f_affine": "3*x**4 + x**2*y**2 - x**2*y + x**2 - x*y**2 + 2*y**4 + 2*y**3 + 2*y**2 - y + 2",
+    "robustness": 0.20964266511773175,
+    "certificate": {
+     "upper_bound": 0,
+     "lower_bound": 0,
+     "flint_agree": true,
+     "base_point": [
+      50,
+      -9,
+      2
+     ]
+    }
+   },
+   {
+    "type": "0",
+    "f": [
+     -3,
+     0,
+     0,
+     0,
+     -2,
+     -1,
+     -1,
+     0,
+     0,
+     -2,
+     1,
+     -2,
+     0,
+     1,
+     -2
+    ],
+    "height": 3,
+    "f_affine": "-2*x**4 + x**3*y - 2*x**2*y**2 + x**2*y - 2*x**2 - x*y - x - 2*y**4 - 3",
+    "robustness": 0.20790293823030395,
+    "certificate": {
+     "upper_bound": 0,
+     "lower_bound": 0,
+     "flint_agree": true,
+     "base_point": [
+      -11,
+      -8,
+      -50
+     ]
+    }
+   },
+   {
+    "type": "0",
+    "f": [
+     -2,
+     0,
+     -1,
+     0,
+     -3,
+     0,
+     0,
+     1,
+     -1,
+     -2,
+     0,
+     -1,
+     0,
+     0,
+     -3
+    ],
+    "height": 3,
+    "f_affine": "-3*x**4 - x**2*y**2 - 2*x**2 - x*y**3 + x*y**2 - 3*y**4 - y**2 - 2",
+    "robustness": 0.20533565636536114,
+    "certificate": {
+     "upper_bound": 0,
+     "lower_bound": 0,
+     "flint_agree": true,
+     "base_point": [
+      -50,
+      -5,
+      2
+     ]
+    }
+   }
+  ],
+  "1": [
+   {
+    "type": "1",
+    "f": [
+     -3,
+     0,
+     -3,
+     0,
+     -2,
+     0,
+     -1,
+     1,
+     1,
+     2,
+     0,
+     0,
+     1,
+     -1,
+     2
+    ],
+    "height": 3,
+    "f_affine": "2*x**4 - x**3*y + x**3 + 2*x**2 + x*y**3 + x*y**2 - x*y - 2*y**4 - 3*y**2 - 3",
+    "robustness": 0.3322262273970009,
+    "certificate": {
+     "upper_bound": 1,
+     "lower_bound": 1,
+     "flint_agree": true,
+     "base_point": [
+      5,
+      9,
+      50
+     ]
+    }
+   },
+   {
+    "type": "1",
+    "f": [
+     -2,
+     0,
+     -1,
+     1,
+     -3,
+     -1,
+     0,
+     0,
+     0,
+     0,
+     -1,
+     1,
+     -1,
+     1,
+     2
+    ],
+    "height": 3,
+    "f_affine": "2*x**4 + x**3*y - x**3 + x**2*y**2 - x**2*y - x - 3*y**4 + y**3 - y**2 - 2",
+    "robustness": 0.31542190189632285,
+    "certificate": {
+     "upper_bound": 1,
+     "lower_bound": 1,
+     "flint_agree": true,
+     "base_point": [
+      8,
+      -50,
+      2
+     ]
+    }
+   },
+   {
+    "type": "1",
+    "f": [
+     2,
+     0,
+     1,
+     2,
+     -3,
+     -1,
+     0,
+     -1,
+     0,
+     1,
+     -2,
+     -3,
+     -1,
+     0,
+     -3
+    ],
+    "height": 3,
+    "f_affine": "-3*x**4 - x**3 - 3*x**2*y**2 - 2*x**2*y + x**2 - x*y**2 - x - 3*y**4 + 2*y**3 + y**2 + 2",
+    "robustness": 0.30463907224724074,
+    "certificate": {
+     "upper_bound": 1,
+     "lower_bound": 1,
+     "flint_agree": true,
+     "base_point": [
+      50,
+      -4,
+      3
+     ]
+    }
+   }
+  ],
+  "2": [
+   {
+    "type": "2",
+    "f": [
+     0,
+     2,
+     1,
+     -3,
+     -1,
+     0,
+     0,
+     0,
+     0,
+     -1,
+     1,
+     -1,
+     -1,
+     0,
+     -1
+    ],
+    "height": 3,
+    "f_affine": "-x**4 - x**3 - x**2*y**2 + x**2*y - x**2 - y**4 - 3*y**3 + y**2 + 2*y",
+    "robustness": 0.11287536199542648,
+    "certificate": {
+     "upper_bound": 2,
+     "lower_bound": 2,
+     "flint_agree": true,
+     "base_point": [
+      -1,
+      -50,
+      -22
+     ],
+     "nesting": {
+      "sign_N": -1,
+      "separated_signs": [
+       -1,
+       1,
+       1
+      ]
+     }
+    }
+   },
+   {
+    "type": "2",
+    "f": [
+     -2,
+     -1,
+     -2,
+     0,
+     0,
+     -1,
+     0,
+     1,
+     -3,
+     -2,
+     -1,
+     -1,
+     -1,
+     3,
+     0
+    ],
+    "height": 3,
+    "f_affine": "3*x**3*y - x**3 - x**2*y**2 - x**2*y - 2*x**2 - 3*x*y**3 + x*y**2 - x - 2*y**2 - y - 2",
+    "robustness": 0.10871059711941425,
+    "certificate": {
+     "upper_bound": 2,
+     "lower_bound": 2,
+     "flint_agree": true,
+     "base_point": [
+      5,
+      17,
+      50
+     ],
+     "nesting": {
+      "sign_N": -1,
+      "separated_signs": [
+       1,
+       -1,
+       1
+      ]
+     }
+    }
+   },
+   {
+    "type": "2",
+    "f": [
+     -2,
+     -1,
+     -1,
+     1,
+     -1,
+     1,
+     1,
+     -1,
+     1,
+     -1,
+     -1,
+     3,
+     0,
+     -1,
+     0
+    ],
+    "height": 3,
+    "f_affine": "-x**3*y + 3*x**2*y**2 - x**2*y - x**2 + x*y**3 - x*y**2 + x*y + x - y**4 + y**3 - y**2 - y - 2",
+    "robustness": 0.10485749129285746,
+    "certificate": {
+     "upper_bound": 2,
+     "lower_bound": 2,
+     "flint_agree": true,
+     "base_point": [
+      -14,
+      1,
+      50
+     ],
+     "nesting": {
+      "sign_N": -1,
+      "separated_signs": [
+       1,
+       -1,
+       1
+      ]
+     }
+    }
+   }
+  ],
+  "1<1>": [
+   {
+    "type": "1<1>",
+    "f": [
+     0,
+     0,
+     3,
+     0,
+     -1,
+     2,
+     0,
+     -2,
+     0,
+     1,
+     -1,
+     -1,
+     -2,
+     0,
+     0
+    ],
+    "height": 3,
+    "f_affine": "-2*x**3 - x**2*y**2 - x**2*y + x**2 - 2*x*y**2 + 2*x - y**4 + 3*y**2",
+    "robustness": 0.07495829958142698,
+    "certificate": {
+     "upper_bound": 2,
+     "lower_bound": 2,
+     "flint_agree": true,
+     "base_point": [
+      6,
+      -50,
+      -4
+     ],
+     "nesting": {
+      "sign_N": -1,
+      "separated_signs": [
+       -1,
+       1,
+       -1
+      ]
+     }
+    }
+   },
+   {
+    "type": "1<1>",
+    "f": [
+     0,
+     -1,
+     -2,
+     2,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     -4,
+     2,
+     0,
+     0,
+     -1
+    ],
+    "height": 4,
+    "f_affine": "-x**4 + 2*x**2*y**2 - 4*x**2*y + 2*y**3 - 2*y**2 - y",
+    "robustness": 0.07026498308513388,
+    "certificate": {
+     "upper_bound": 2,
+     "lower_bound": 2,
+     "flint_agree": true,
+     "base_point": [
+      -50,
+      -1,
+      -10
+     ],
+     "nesting": {
+      "sign_N": -1,
+      "separated_signs": [
+       -1,
+       1,
+       -1
+      ]
+     }
+    }
+   },
+   {
+    "type": "1<1>",
+    "f": [
+     0,
+     -1,
+     0,
+     0,
+     0,
+     2,
+     2,
+     0,
+     1,
+     -1,
+     3,
+     1,
+     -1,
+     -1,
+     0
+    ],
+    "height": 3,
+    "f_affine": "-x**3*y - x**3 + x**2*y**2 + 3*x**2*y - x**2 + x*y**3 + 2*x*y + 2*x - y",
+    "robustness": 0.06838419008093856,
+    "certificate": {
+     "upper_bound": 2,
+     "lower_bound": 2,
+     "flint_agree": true,
+     "base_point": [
+      -35,
+      -50,
+      -35
+     ],
+     "nesting": {
+      "sign_N": 1,
+      "separated_signs": [
+       1,
+       -1,
+       1
+      ]
+     }
+    }
+   }
+  ],
+  "3": [
+   {
+    "type": "3",
+    "f": [
+     0,
+     -3,
+     0,
+     2,
+     0,
+     -2,
+     -2,
+     -2,
+     2,
+     0,
+     0,
+     2,
+     3,
+     -1,
+     0
+    ],
+    "height": 3,
+    "f_affine": "-x**3*y + 3*x**3 + 2*x**2*y**2 + 2*x*y**3 - 2*x*y**2 - 2*x*y - 2*x + 2*y**3 - 3*y",
+    "robustness": 0.07446985104939446,
+    "certificate": {
+     "upper_bound": 3,
+     "lower_bound": 3,
+     "flint_agree": true,
+     "base_point": [
+      50,
+      -27,
+      28
+     ]
+    }
+   },
+   {
+    "type": "3",
+    "f": [
+     -1,
+     1,
+     4,
+     0,
+     1,
+     -1,
+     1,
+     1,
+     0,
+     4,
+     -2,
+     -4,
+     1,
+     0,
+     1
+    ],
+    "height": 4,
+    "f_affine": "x**4 + x**3 - 4*x**2*y**2 - 2*x**2*y + 4*x**2 + x*y**2 + x*y - x + y**4 + 4*y**2 + y - 1",
+    "robustness": 0.07224178065531746,
+    "certificate": {
+     "upper_bound": 3,
+     "lower_bound": 3,
+     "flint_agree": true,
+     "base_point": [
+      50,
+      2,
+      34
+     ]
+    }
+   },
+   {
+    "type": "3",
+    "f": [
+     0,
+     1,
+     -3,
+     0,
+     0,
+     -1,
+     -1,
+     0,
+     1,
+     2,
+     -1,
+     -2,
+     1,
+     0,
+     0
+    ],
+    "height": 3,
+    "f_affine": "x**3 - 2*x**2*y**2 - x**2*y + 2*x**2 + x*y**3 - x*y - x - 3*y**2 + y",
+    "robustness": 0.06816974147673975,
+    "certificate": {
+     "upper_bound": 3,
+     "lower_bound": 3,
+     "flint_agree": true,
+     "base_point": [
+      -8,
+      50,
+      -46
+     ]
+    }
+   }
+  ],
+  "4": [
+   {
+    "type": "4",
+    "f": [
+     2,
+     1,
+     -4,
+     -3,
+     4,
+     -1,
+     -2,
+     1,
+     -4,
+     -3,
+     1,
+     -3,
+     1,
+     3,
+     2
+    ],
+    "height": 4,
+    "f_affine": "2*x**4 + 3*x**3*y + x**3 - 3*x**2*y**2 + x**2*y - 3*x**2 - 4*x*y**3 + x*y**2 - 2*x*y - x + 4*y**4 - 3*y**3 - 4*y**2 + y + 2",
+    "robustness": 0.019856977379146247,
+    "certificate": {
+     "upper_bound": 4,
+     "lower_bound": 4,
+     "flint_agree": true,
+     "base_point": [
+      0,
+      50,
+      -10
+     ]
+    }
+   },
+   {
+    "type": "4",
+    "f": [
+     2,
+     2,
+     -3,
+     -2,
+     2,
+     0,
+     -1,
+     -1,
+     1,
+     -3,
+     -1,
+     -2,
+     0,
+     0,
+     2
+    ],
+    "height": 3,
+    "f_affine": "2*x**4 - 2*x**2*y**2 - x**2*y - 3*x**2 + x*y**3 - x*y**2 - x*y + 2*y**4 - 2*y**3 - 3*y**2 + 2*y + 2",
+    "robustness": 0.01979381180249877,
+    "certificate": {
+     "upper_bound": 4,
+     "lower_bound": 4,
+     "flint_agree": true,
+     "base_point": [
+      -4,
+      -3,
+      -50
+     ]
+    }
+   },
+   {
+    "type": "4",
+    "f": [
+     2,
+     -2,
+     -2,
+     1,
+     2,
+     0,
+     1,
+     1,
+     -2,
+     -3,
+     0,
+     -2,
+     -1,
+     2,
+     3
+    ],
+    "height": 3,
+    "f_affine": "3*x**4 + 2*x**3*y - x**3 - 2*x**2*y**2 - 3*x**2 - 2*x*y**3 + x*y**2 + x*y + 2*y**4 + y**3 - 2*y**2 - 2*y + 2",
+    "robustness": 0.019788137358820863,
+    "certificate": {
+     "upper_bound": 4,
+     "lower_bound": 4,
+     "flint_agree": true,
+     "base_point": [
+      50,
+      -3,
+      -5
+     ]
+    }
+   }
+  ]
+ }
+}
