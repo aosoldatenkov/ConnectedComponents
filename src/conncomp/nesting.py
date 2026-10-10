@@ -123,6 +123,18 @@ class SphereMesh:
             out[s : s + chunk] = (coefs[:, s : s + chunk].T @ basis) >= 0
         return out
 
+    def tables(self):
+        """(nbr4, nbr8, antipode) as GPU tensors (for conncomp.gpu_trees)."""
+        if not hasattr(self, "_tables"):
+            self._tables = tuple(torch.as_tensor(a, device=self.device) for a in (self.nbr4, self.nbr8, self.antipode))
+        return self._tables
+
+    def trees_gpu(self, coefs, deg, min_size=3, eight=1):
+        """Region trees computed on the GPU (conncomp.gpu_trees.GPUTrees)."""
+        from conncomp.gpu_trees import region_trees
+
+        return region_trees(self.signs(coefs, deg), self.tables(), min_size, eight)
+
     def trees(self, coefs, deg, min_size=3, eight=1, num_threads=-1):
         """Region trees (NestingTree) of the curves {form = 0} for forms (D, B) of degree deg."""
         s = self.signs(coefs, deg).cpu().numpy()

@@ -56,3 +56,57 @@ def test_mesh_trees_consistent_on_random_hessians(mesh):
     f = sample(5, 2000)
     trees = mesh.trees(hessian(5, f), 6)
     assert all(t.ok for t in trees)
+
+
+def test_gpu_trees_match_cpp(mesh):
+    from conncomp.gpu_trees import to_nesting_trees
+
+    torch.manual_seed(1)
+    for coefs in (hessian(5, sample(5, 1500)), sample(6, 1500)):
+        g = mesh.trees_gpu(coefs, 6)
+        cpp = mesh.trees(coefs, 6)
+        gt = to_nesting_trees(g, coefs.shape[1])
+        assert g.n_ovals.tolist() == [t.n_ovals for t in cpp]
+        assert [t.type for t in gt] == [t.type for t in cpp]
+        assert bool(g.ok.all())
+
+
+@pytest.mark.parametrize("name,expr,deg,expected", CASES[1:4], ids=[c[0] for c in CASES[1:4]])
+def test_gpu_known_types(mesh, name, expr, deg, expected):
+    from conncomp.gpu_trees import to_nesting_trees
+
+    t = to_nesting_trees(mesh.trees_gpu(coefs(expr, deg), deg), 1)[0]
+    assert t.ok and t.type == expected
+
+
+def _has_cuda_module():
+    try:
+        from conncomp import _connected_cuda  # noqa: F401
+
+        return torch.cuda.is_available()
+    except ImportError:
+        return False
+
+
+@pytest.mark.skipif(not _has_cuda_module(), reason="CUDA labelling module not built")
+def test_cuda_face_mesh_matches_cpp():
+    from conncomp.gpu_trees import FaceMesh, to_nesting_trees
+
+    fm, sm = FaceMesh(40), SphereMesh(40)
+    assert fm.n_loc - fm.seams.shape[0] == sm.V == int(fm.weight.sum())
+    torch.manual_seed(2)
+    for coefs in (hessian(5, sample(5, 2000)), sample(6, 2000)):
+        g = to_nesting_trees(fm.trees(coefs, 6), coefs.shape[1])
+        c = sm.trees(coefs, 6)
+        assert [t.type for t in g] == [t.type for t in c]
+        assert [sorted(t.size.tolist()) for t in g] == [sorted(t.size.tolist()) for t in c]
+        assert all(t.ok for t in g)
+
+
+@pytest.mark.skipif(not _has_cuda_module(), reason="CUDA labelling module not built")
+@pytest.mark.parametrize("name,expr,deg,expected", CASES, ids=[c[0] for c in CASES])
+def test_cuda_known_types(name, expr, deg, expected):
+    from conncomp.gpu_trees import FaceMesh, to_nesting_trees
+
+    t = to_nesting_trees(FaceMesh(60).trees(coefs(expr, deg), deg), 1)[0]
+    assert t.ok and t.type == expected

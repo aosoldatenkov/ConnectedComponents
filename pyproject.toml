@@ -47,6 +47,7 @@ cache-keys = [
     { file = "pyproject.toml" },
     { file = "CMakeLists.txt" },
     { file = "src/conncomp/*.cpp" },
+    { file = "src/conncomp/*.cu" },
 ]
 
 # PyTorch with CUDA 12.8 wheels (required for Blackwell GPUs such as the RTX 50xx).
