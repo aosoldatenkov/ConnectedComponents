@@ -79,3 +79,47 @@ def test_rejects_base_point_mismatch(cert):
     for r in range(3):
         bad["upper"]["M"][r][1] = w[r]
     assert run(bad) is None
+
+
+TYPE_CERTS = sorted((ROOT / "data").glob("*_types/certificates/*.json"))
+
+
+@pytest.mark.parametrize("path", TYPE_CERTS, ids=lambda p: f"{p.parent.parent.name}/{p.name}")
+def test_type_certificates_verify(path):
+    cert = load(path)
+    assert run(cert) == cert["proven_ovals"]
+    assert cert["_type"] == cert["type"]
+
+
+def _interior_cert():
+    return next(load(p) for p in TYPE_CERTS if "upper_interior" in load(p))
+
+
+def test_rejects_wrong_type_claim():
+    cert = load(next(p for p in TYPE_CERTS if load(p)["type"] == "1<1>"))
+    cert["type"] = "2"
+    assert run(cert) is None
+
+
+def test_interior_bound_needed():
+    cert = _interior_cert()
+    assert run(copy.deepcopy(cert)) == cert["proven_ovals"]
+    del cert["upper_interior"]
+    assert run(cert) is None  # the plain pencil bound is loose
+
+
+def test_rejects_bad_interior_line():
+    cert = _interior_cert()
+    O = [int(V.Fraction(v)) for v in (row[1] for row in cert["upper_interior"]["M"])]
+    cert["upper_interior"]["line_point"] = O  # the line O O is not a line
+    assert run(cert) is None
+
+
+def test_depth_three_nest_is_not_one_and_nest():
+    """Three nested circles (scheme 1<1<1>>) have the region signs of 1 u 1<1>; the line test must reject it."""
+    X, Y, Z = V.CTX3.gens()
+    H = (X**2 + Y**2 - Z**2) * (X**2 + Y**2 - 4 * Z**2) * (X**2 + Y**2 - 9 * Z**2)
+    terms = V.int_terms(H)
+    wit = [[0, 0, 1], [3, 0, 2], [5, 0, 2], [4, 0, 1]]  # radii 0, 1.5, 2.5, 4: one point per region
+    wsign = [V.sign(int(H(*w))) for w in wit]
+    assert V.verify_type("1 u 1<1>", 3, 6, terms, wit, wsign, [0, 1, 2, 3], wsign[3], V.Log(quiet=True), 0) is None

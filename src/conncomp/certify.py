@@ -495,6 +495,58 @@ def certify_upper_bound(H, target=None, base_point=None, n_base=4, n_frames=3, N
 
 
 # ---------------------------------------------------------------------------
+# Upper bound with a base point anywhere off the curve (also inside ovals)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class InteriorPencilCertificate:
+    """#ovals <= floor(N_tan / 2) + floor(r / 2) for a base point O anywhere off the curve.
+
+    Ovals not containing O have >= 2 tangency points with the pencil through O (as in `pencil_tangents`). Every
+    line through O leaves the disk of an oval containing O, so it meets that oval at least twice: such ovals number
+    at most r / 2, with r the number of real intersection points (with multiplicity) of one line OQ with the curve.
+    Needs no loop certificate; useful when O can be placed inside a nest (where the outer oval looks convex).
+    """
+
+    pencil: PencilCertificate
+    line_point: list  # Q
+    n_line_roots: int  # r
+    upper_bound: int
+    certified: bool
+
+
+def line_real_roots(H, O, Q):
+    """Real intersection points (with multiplicity) of the projective line through O, Q with H = 0 (O off H)."""
+    O, Q = [_rat(v) for v in O], [_rat(v) for v in Q]
+    sub = {v: a + t * b for v, a, b in zip((X, Y, Z), O, Q)}
+    p = sp.Poly(H.as_expr().subs(sub, simultaneous=True), t, domain=sp.QQ)
+    return n_real_roots(p, multiplicity=True) + (H.total_degree() - p.degree())
+
+
+def certify_upper_bound_interior(H, base_points, target=None, n_frames=3, n_lines=6, seed=0):
+    """Best `InteriorPencilCertificate` over the given base points (e.g. witnesses of all regions): for each O,
+    the line through O with the fewest real intersections among `n_lines` random ones, and `n_frames` pencils."""
+    rng = random.Random(seed)
+    best = None
+    for O in base_points:
+        O = [int(v) for v in O]
+        Qs = [_random_point(rng, 5) for _ in range(n_lines)]
+        rs = [line_real_roots(H, O, Q) for Q in Qs]
+        i = min(range(n_lines), key=rs.__getitem__)
+        for _ in range(n_frames):
+            cert = pencil_tangents(H, O, _random_point(rng, 5), _random_point(rng, 5))
+            if not (cert.valid and cert.smooth):
+                continue
+            bound = cert.n_tangent_points // 2 + rs[i] // 2
+            if best is None or bound < best.upper_bound:
+                best = InteriorPencilCertificate(cert, Qs[i], rs[i], bound, True)
+            if target is not None and best.upper_bound <= target:
+                return best
+    return best
+
+
+# ---------------------------------------------------------------------------
 # Cross-check with FLINT / Arb
 # ---------------------------------------------------------------------------
 

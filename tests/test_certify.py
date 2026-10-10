@@ -135,3 +135,16 @@ def test_flint_real_root_count():
     assert flint_real_root_count([-2, 0, 1]) == 2  # x^2 - 2
     assert flint_real_root_count([-2, 0, -1, 0, 1]) == 2  # (x^2 - 2)(x^2 + 1)
     assert flint_real_root_count([1, -2, 1]) == 1  # (x - 1)^2
+
+
+def test_interior_pencil_bound_nested_circles():
+    """Base point at the common centre of two nested circles: no tangents, 4 points on every line: bound 2."""
+    from conncomp.certify import certify_upper_bound_interior, line_real_roots
+
+    H = sp.Poly((4 * X**2 + 4 * Y**2 - Z**2) * (X**2 + Y**2 - Z**2), X, Y, Z)
+    assert line_real_roots(H, [0, 0, 1], [1, 2, 0]) == 4
+    cert = certify_upper_bound_interior(H, [[0, 0, 1]])
+    assert cert.pencil.n_tangent_points == 0 and cert.n_line_roots == 4 and cert.upper_bound == 2
+    # a base point between the circles: 2 tangents (inner circle) + 2 points of the outer circle on some line
+    cert = certify_upper_bound_interior(H, [[3, 0, 4]], target=2)
+    assert cert.upper_bound == 2

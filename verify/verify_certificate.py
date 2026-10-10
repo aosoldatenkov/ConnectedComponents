@@ -6,16 +6,26 @@ conncomp. The only data taken from the certificate on trust are the integer coef
 Everything else (H, the frame, the base point loop, the witnesses and the polygons) is a hint that
 is checked or recomputed.
 
-Claim verified: the Hessian curve C = {H = 0}, H = f_xx f_yy - f_xy^2 (f homogenized with z), has
-exactly k ovals in RP^2. The mathematical facts used:
+Claim verified: the curve C = {H = 0} has exactly k ovals in RP^2, where H = f_xx f_yy - f_xy^2 (the Hessian
+curve of f, homogenized with z; default) or H = f (certificates with "curve": "plain"). Optionally also its
+nesting type ("type", degree <= 6). The mathematical facts used:
 
   (a) Pencil bound. If C is smooth of even degree and O lies outside all ovals, every oval has at
       least 2 points whose tangent passes through O, so #ovals <= N_tan / 2.
   (b) O lies outside all ovals if a non-contractible loop through O avoids C (its lift to S^2 runs
       from O to -O). All complementary components other than the non-orientable one lie in disks.
+  (a') Interior pencil bound. For O anywhere off a smooth C of even degree: ovals not containing O have >= 2
+      tangency points as in (a); every line through O meets each oval containing O at least twice. Hence
+      #ovals <= floor(N_tan / 2) + floor(r / 2), r = #(real points of a line OQ on C, with multiplicity).
   (c) Separation. A closed polygon in an affine chart that avoids C with constant sign s separates
       two witnesses of sign -s with different (even-odd) parity into different components of
       RP^2 minus C. For smooth C of even degree, #components = #ovals + 1.
+  (d) Nesting type (degree 4 or 6). By Bezout, a smooth sextic has at most one nest and nests of depth <= 2,
+      except the scheme 1<1<1>> (three nested ovals, nothing else); a quartic has at most the nest 1<1>. So the
+      type is a u 1<b>. With k ovals proven, the k + 1 pairwise separated witnesses lie one in each region, and the
+      base point O of (b) lies in the root region N: b = #(other regions with the sign of N), a = k - b - [b > 0].
+      The scheme 1<1<1>> has the same signs as 1 u 1<1>; it is excluded by a line through each witness of sign
+      -sign(N) meeting C in at most 4 points (a line through the innermost disk of a depth-3 nest meets C >= 6 times).
 
 Algorithms (chosen to differ from the main conncomp code):
   * segment checks: Vincent-Collins-Akritas (Descartes + bisection) on the squarefree part, and
@@ -92,6 +102,24 @@ def real_roots(p):
         return 0
     _, factors = p.factor()
     return sum(sum(1 for r, _ in f.complex_roots() if r.imag.is_zero()) for f, _ in factors)
+
+
+def real_roots_mult(p):
+    """Number of real roots of a nonzero integer polynomial, counted with multiplicity."""
+    if p.degree() <= 0:
+        return 0
+    _, factors = p.factor()
+    return sum(m * sum(1 for r, _ in f.complex_roots() if r.imag.is_zero()) for f, m in factors)
+
+
+def line_points(terms, deg, O, Q):
+    """Real points (with multiplicity) of the projective line through O and Q on H = 0, for H(O) != 0:
+    roots of p(t) = H(O + t Q), plus deg - deg(p) at t = infinity (the point Q)."""
+    lin = [flint.fmpz_poly([a, b]) for a, b in zip(O, Q)]
+    p = flint.fmpz_poly([0])
+    for (i, j, k), c in terms:
+        p += c * lin[0] ** i * lin[1] ** j * lin[2] ** k
+    return real_roots_mult(p) + (deg - p.degree())
 
 
 def variations(coeffs):
@@ -405,20 +433,62 @@ def hessian(f):
     return fxx * fyy - fxy * fxy
 
 
+def type_name(a, b):
+    if b == 0:
+        return str(a)
+    return f"1<{b}>" if a == 0 else f"{a} u 1<{b}>"
+
+
+def verify_type(claim, k, n, terms, witnesses, wsign, clique, sign_N, log, seed, tries=60):
+    """Nesting type from the region signs (fact (d)); returns the verified type string or None."""
+    if not log.check("nesting type: degree 4 or 6", n in (4, 6), f"degree {n}"):
+        return None
+    b = sum(1 for i in clique if wsign[i] == sign_N) - 1
+    a = k - b - (1 if b > 0 else 0)
+    if not log.check("nesting type: region signs are consistent", a >= 0 and b >= 0, f"a = {a}, b = {b}"):
+        return None
+    t = type_name(a, b)
+    if n == 6 and (a, b) == (1, 1):  # exclude 1<1<1>>
+        rng = random.Random(seed)
+        ok = True
+        for i in clique:
+            if wsign[i] == sign_N:
+                continue
+            w = witnesses[i]
+            found = None
+            for _ in range(tries):
+                Q = [rng.randint(-9, 9) for _ in range(3)]
+                if cross(w, Q) != (0, 0, 0) and line_points(terms, n, w, Q) <= 4:
+                    found = Q
+                    break
+            ok &= found is not None
+        if not log.check("nesting type: not the depth-3 nest 1<1<1>> (lines through -sign(N) witnesses meet C "
+                         "in <= 4 points)", ok):
+            return None
+    log.check("nesting type matches the claim", t == claim, f"{t} vs claimed {claim}")
+    return t if t == claim else None
+
+
 def verify(cert, log, extra_frames=2, seed=1):
     """Verify a certificate dict. Returns the proven number of ovals, or None."""
     d = cert["deg"]
     f = CTX3.from_dict({m: int(c) for m, c in zip(monomials(d), cert["f"]) if int(c)})
-    Hf = hessian(f)
-    n = Hf.total_degree()
-    H = CTX3.from_dict({m: int(c) for m, c in zip(monomials(cert["hessian_deg"]), cert["hessian"]) if int(c)})
-    # H must be a positive multiple of Hess(f): Hess(f) = (a/b) H with a/b > 0
-    e, c = next(iter(Hf.to_dict().items()))
-    h = int(H.to_dict().get(e, 0))
-    ratio = Fraction(int(c), h) if h else None
-    prop = ratio is not None and ratio > 0 and Hf * ratio.denominator == H * ratio.numerator
-    if not log.check("stored H is a positive multiple of f_xx f_yy - f_xy^2", prop):
-        return None
+    if cert.get("curve", "hessian") == "plain":
+        H = f
+        n = d
+        if not log.check("curve H = f is a nonzero form", H != 0):
+            return None
+    else:
+        Hf = hessian(f)
+        n = Hf.total_degree()
+        H = CTX3.from_dict({m: int(c) for m, c in zip(monomials(cert["hessian_deg"]), cert["hessian"]) if int(c)})
+        # H must be a positive multiple of Hess(f): Hess(f) = (a/b) H with a/b > 0
+        e, c = next(iter(Hf.to_dict().items()))
+        h = int(H.to_dict().get(e, 0))
+        ratio = Fraction(int(c), h) if h else None
+        prop = ratio is not None and ratio > 0 and Hf * ratio.denominator == H * ratio.numerator
+        if not log.check("stored H is a positive multiple of f_xx f_yy - f_xy^2", prop):
+            return None
     if not log.check("degree of H is even", n % 2 == 0, f"degree {n}"):
         return None
     terms = int_terms(H)
@@ -463,7 +533,24 @@ def verify(cert, log, extra_frames=2, seed=1):
     log.check("tangency count is independent of the frame", counts and all(c == n_tan for c in counts),
               f"extra frames: {counts}")
     upper = n_tan // 2
-    log.info(f"upper bound: #ovals <= {upper}")
+    log.info(f"upper bound (pencil, O outside all ovals): #ovals <= {upper}")
+
+    # --- interior pencil bound (base point anywhere off C)
+    inter = cert.get("upper_interior")
+    if inter:
+        Mi = [[int(Fraction(v)) for v in row] for row in inter["M"]]
+        Oi = [Mi[r][1] for r in range(3)]
+        Q = [int(Fraction(v)) for v in inter["line_point"]]
+        ok = det3(Mi) != 0 and cross(Oi, Q) != (0, 0, 0) and int(H(*Oi)) != 0
+        ri = pencil_count(H, Mi) if ok else {"valid": False, "smooth": False, "reason": "bad frame or base point"}
+        ok = ok and ri["valid"] and ri["smooth"]
+        if log.check("interior pencil: tangency points separated or resolved, C smooth", ok, ri.get("reason", "")):
+            nt = ri["n_affine"] + ri["n_line"]
+            r = line_points(terms, n, Oi, Q)
+            bound = nt // 2 + r // 2
+            log.info(f"interior pencil at O' = {Oi}: {nt} tangency points, line O'Q meets C in {r} real points: "
+                     f"#ovals <= {bound}")
+            upper = min(upper, bound)
 
     # --- lower bound
     witnesses = [int_point(w["point"]) for w in cert["witnesses"]]
@@ -505,6 +592,11 @@ def verify(cert, log, extra_frames=2, seed=1):
 
     log.check("lower bound equals upper bound", lower == upper, f"{lower} vs {upper}")
 
+    # --- nesting type
+    if "type" in cert and lower == upper:
+        cert["_type"] = verify_type(cert["type"], upper, n, terms, witnesses, wsign, clique, sign(int(H(*O))), log,
+                                    seed)
+
     # extra statement: all ovals are compact in the affine plane z = 1 iff the line z = 0 misses C
     compact = all(check_segment(terms, u, v)[0] for u, v in (([1, 0, 0], [0, 1, 0]), ([0, 1, 0], [-1, 0, 0])))
     log.info(f"line at infinity z = 0 {'misses' if compact else 'meets'} the curve"
@@ -533,7 +625,9 @@ def main(argv=None):
         else:
             where = "RP^2, all compact in R^2" if cert.get("_compact") else "RP^2"
             dt = time.time() - t0
-            print(f"  => VERIFIED: the Hessian curve of f has exactly {proven} ovals in {where} ({dt:.1f}s)")
+            what = "the curve f = 0" if cert.get("curve", "hessian") == "plain" else "the Hessian curve of f"
+            typ = f", nesting type {cert['_type']}" if cert.get("_type") else ""
+            print(f"  => VERIFIED: {what} has exactly {proven} ovals in {where}{typ} ({dt:.1f}s)")
     return status
 
 
