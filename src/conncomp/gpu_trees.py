@@ -295,6 +295,7 @@ class FaceMesh:
         self.weight = torch.as_tensor((canon == np.arange(self.n_loc)).astype(np.int32), device=self.device)
         f, i, j = np.unravel_index(np.arange(self.n_loc), (6, M, M))
         self.anti = torch.as_tensor(np.ravel_multi_index((f ^ 1, M - 1 - i, M - 1 - j), (6, M, M)), device=self.device)
+        self.anti32 = self.anti.to(torch.int32)
         nbr = -np.ones((self.n_loc, 4), dtype=np.int64)
         for k, (di, dj) in enumerate(((-1, 0), (1, 0), (0, -1), (0, 1))):
             ok = (i + di >= 0) & (i + di < M) & (j + dj >= 0) & (j + dj < M)
@@ -338,16 +339,58 @@ class FaceMesh:
                                     B, self.M, eight, torch.cuda.current_stream().cuda_stream)
         return parent
 
-    def trees(self, coefs, deg, min_size=3, eight=1, max_nodes=4e7):
-        """Region trees (GPUTrees) of the curves {form = 0} for forms (D, B), labelled with the CUDA kernels."""
+    def _trees_cuda(self, signs, labels, min_size, eight):
+        """Region trees (GPUTrees) from CUDA labels with the per-form CUDA tree kernel; forms with more components
+        than the kernel's capacity fall back to the PyTorch path."""
+        from conncomp import _connected_cuda
+
+        B, dev, K = signs.shape[0], signs.device, _connected_cuda.tree_capacity
+        nreg, nov, ok = (torch.empty(B, dtype=torch.int32, device=dev) for _ in range(3))
+        size, sign, flags, parent, depth = (torch.empty((B, K), dtype=torch.int32, device=dev) for _ in range(5))
+        _connected_cuda.form_trees(signs.data_ptr(), labels.data_ptr(), self.weight.data_ptr(), self.anti32.data_ptr(),
+                                   B, self.M, min_size, *(t.data_ptr() for t in (nreg, nov, ok, size, sign, flags,
+                                                                                 parent, depth)),
+                                   torch.cuda.current_stream().cuda_stream)
+        over = nreg < 0
+        nr = nreg.clamp(min=0).long()
+        mask = torch.arange(K, device=dev) < nr[:, None]
+        start = torch.cumsum(nr, 0) - nr
+        form = torch.arange(B, device=dev)[:, None].expand(B, K)[mask]
+        par = parent.long()
+        par = torch.where(par >= 0, par + start[:, None], par)[mask]
+        t = GPUTrees(nov.long(), ok.bool(), form, size[mask].long(), sign[mask].long(), (flags[mask] & 1).bool(),
+                     (flags[mask] & 2).bool(), par, depth[mask].long())
+        if bool(over.any()):  # rare: noisy forms with more than K components on S^2
+            idx = torch.nonzero(over)[:, 0]
+            so = signs[idx]
+            f = _trees_from_labels(so, self.labels(so, eight), self.nbr4, self.anti, self.weight, min_size,
+                                   sign_pairs=self.sign_pairs)
+            t.n_ovals[idx], t.ok[idx] = f.n_ovals, f.ok
+            r0 = t.form.numel()
+            t.form = torch.cat([t.form, idx[f.form]])
+            t.parent = torch.cat([t.parent, torch.where(f.parent >= 0, f.parent + r0, f.parent)])
+            for name in ("size", "sign", "alive", "is_root", "depth"):
+                setattr(t, name, torch.cat([getattr(t, name), getattr(f, name)]))
+        return t
+
+    def trees(self, coefs, deg, min_size=3, eight=1, max_nodes=4e7, backend="cuda"):
+        """Region trees (GPUTrees) of the curves {form = 0} for forms (D, B), labelled with the CUDA kernels.
+
+        backend: "cuda" (per-form tree kernel) or "torch" (tensor post-processing in PyTorch, for cross-checks).
+        Batches are processed in chunks of at most `max_nodes` mesh nodes. For resolutions beyond the GPU memory
+        use the C++ baseline conncomp.nesting.SphereMesh(N).trees (CPU).
+        """
         signs = self.signs(coefs, deg)
         B = signs.shape[0]
         chunk = max(1, int(max_nodes // self.n_loc))
         parts, f_off, r_off = [], 0, 0
         for s0 in range(0, B, chunk):
             sc = signs[s0 : s0 + chunk]
-            t = _trees_from_labels(sc, self.labels(sc, eight), self.nbr4, self.anti, self.weight, min_size,
-                                   sign_pairs=self.sign_pairs)
+            if backend == "cuda":
+                t = self._trees_cuda(sc, self.labels(sc, eight), min_size, eight)
+            else:
+                t = _trees_from_labels(sc, self.labels(sc, eight), self.nbr4, self.anti, self.weight, min_size,
+                                       sign_pairs=self.sign_pairs)
             t.form = t.form + f_off
             t.parent = torch.where(t.parent >= 0, t.parent + r_off, t.parent)
             parts.append(t)

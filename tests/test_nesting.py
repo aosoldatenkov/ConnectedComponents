@@ -110,3 +110,30 @@ def test_cuda_known_types(name, expr, deg, expected):
 
     t = to_nesting_trees(FaceMesh(60).trees(coefs(expr, deg), deg), 1)[0]
     assert t.ok and t.type == expected
+
+
+def _key(t):
+    return sorted(zip(t.form.tolist(), t.size.tolist(), t.sign.tolist(), t.alive.tolist(), t.is_root.tolist(),
+                      t.depth.tolist()))
+
+
+@pytest.mark.skipif(not _has_cuda_module(), reason="CUDA labelling module not built")
+def test_cuda_tree_kernel_matches_torch():
+    """Per-form CUDA tree kernel = PyTorch post-processing, incl. noisy forms (pruning) and the overflow fallback."""
+    from conncomp.gpu_trees import FaceMesh, _trees_from_labels
+
+    fm = FaceMesh(20)
+    torch.manual_seed(4)
+    s = fm.signs(sample(6, 300), 6)
+    for p in (0.0, 0.003, 0.02, 0.3):  # p = 0.3: more components than the kernel's capacity
+        flip = torch.rand(s.shape, device=s.device) < p
+        sn = (s ^ (flip | flip[:, fm.anti]).to(torch.uint8)).contiguous()
+        sn[:, fm.seams[:, 0].long()] = sn[:, fm.seams[:, 1].long()]
+        for eight in (0, 1):
+            L = fm.labels(sn, eight)
+            a = fm._trees_cuda(sn, L, 3, eight)
+            b = _trees_from_labels(sn, L, fm.nbr4, fm.anti, fm.weight, 3, sign_pairs=fm.sign_pairs)
+            assert torch.equal(a.n_ovals, b.n_ovals) and torch.equal(a.ok, b.ok)
+            assert _key(a) == _key(b)
+    odd = fm.signs(sample(5, 100), 5)  # not antipodally symmetric: no root region
+    assert not fm._trees_cuda(odd, fm.labels(odd), 3, 1).ok.any()

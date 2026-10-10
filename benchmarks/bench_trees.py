@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Region trees on the sphere mesh: Triton (conncomp.gpu_trees) versus the C++ baseline (region_trees_mesh).
 
-Checks exact agreement (oval counts, types, consistency flags) and measures throughput, split into the Triton
-labelling and the PyTorch post-processing.
+Checks exact agreement (oval counts, types, consistency flags) and measures throughput: labelling alone, and full
+trees with the CUDA tree kernel, the CUDA labels + PyTorch post-processing, Triton, and C++.
 
     uv run python benchmarks/bench_trees.py
 """
@@ -46,6 +46,7 @@ def main():
             t4 = time.perf_counter()
             fs = fmesh.signs(coefs, deg)
             fmesh.trees(coefs[:, :100], deg)
+            fmesh.trees(coefs[:, :100], deg, backend="torch")
             sync()
             t5 = time.perf_counter()
             for s0 in range(0, B, int(4e7 // fmesh.n_loc)):
@@ -55,6 +56,9 @@ def main():
             gc = fmesh.trees(coefs, deg)
             sync()
             t7 = time.perf_counter()
+            fmesh.trees(coefs, deg, backend="torch")
+            sync()
+            t8 = time.perf_counter()
             same_c = np.mean(gc.n_ovals.cpu().numpy() == (np.diff(res[0]) - 1))
             off, root, nroots, tree = res[0], res[5], res[6], res[7]
             n_cpp = np.diff(off) - 1
@@ -66,7 +70,8 @@ def main():
             tc = mesh.trees(coefs[:, :k], deg)
             same_t = np.mean([a.type == b.type for a, b in zip(tg, tc)])
             print(f"N={N:3d} {name:16s} B={B}: labels: CUDA {B / (t6 - t5):9,.0f}, Triton {B / (t1 - t0):7,.0f} | "
-                  f"full trees: CUDA {B / (t7 - t6):8,.0f}, Triton {B / (t2 - t1):7,.0f}, C++ {B / (t4 - t3):7,.0f} "
+                  f"full trees: CUDA {B / (t7 - t6):8,.0f}, CUDA+torch {B / (t8 - t7):7,.0f}, "
+                  f"Triton {B / (t2 - t1):7,.0f}, C++ {B / (t4 - t3):7,.0f} "
                   f"forms/s | agree with C++: Triton counts {same_n:.2%} ok {same_ok:.2%} types {same_t:.2%}, "
                   f"CUDA counts {same_c:.2%}", flush=True)
 
