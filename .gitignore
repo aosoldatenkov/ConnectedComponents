@@ -23,3 +23,6 @@ papers/
 
 # --- Local scratch output ---
 output/
+
+# --- Local project notes (not tracked) ---
+project.md

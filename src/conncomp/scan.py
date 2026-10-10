@@ -36,17 +36,24 @@ class Experiment:
         """Values of the curve's equation on the grid; shape (N, width, width)."""
         return evaluate(self.basis, self.curve_coefs(coefs, noise))
 
-    def signs(self, coefs, noise=0.0, chunk=8192):
+    def signs(self, coefs, noise=0.0, chunk=None):
         """uint8 sign classes (1 where the value is >= 0) on the grid, shape (N, width, width).
 
-        Evaluated in chunks of `chunk` forms, so the float64 values of the whole batch never need to be
-        in memory at once.
+        Evaluated in chunks of `chunk` forms (default: about 8e7 grid values per chunk), so the float64
+        values of the whole batch never need to be in memory at once.
         """
+        chunk = chunk or max(16, int(8e7 // (self.width * self.width)))
         cc = self.curve_coefs(coefs, noise)
         out = torch.empty((cc.shape[1], self.width, self.width), dtype=torch.uint8, device=cc.device)
         for s in range(0, cc.shape[1], chunk):
             out[s : s + chunk] = evaluate(self.basis, cc[:, s : s + chunk]) >= 0
         return out
+
+    def nesting(self, coefs, min_size=3, noise=0.0):
+        """Region trees (oval counts and nesting types, conncomp.nesting) for each form in the batch."""
+        from conncomp.nesting import nesting_trees
+
+        return nesting_trees(self.signs(coefs, noise).cpu().numpy(), self.pat, min_size)
 
     def count(self, coefs, min_size, noise=0.0):
         """Number of sign components (with at least `min_size` pixels) for each form in the batch."""
