@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Export the certificates of the nesting-type scans (pools/*/cert_*.json, written by scripts/quartic_types.py and
-scripts/sextic_types.py) in the format of the standalone verifier (verify/verify_certificate.py).
+"""Export the certificates of the nesting-type scans (pools/*/cert_*.json, written by scripts/quartic_types.py,
+scripts/sextic_types.py and scripts/sextic_births.py) in the format of the standalone verifier
+(verify/verify_certificate.py).
 
     uv run python scripts/export_type_certificates.py
     uv run python verify/verify_certificate.py -q data/*_types/certificates/*.json
@@ -13,6 +14,7 @@ RUNS = [  # (pools directory, degree of f, curve kind, output directory, file pr
     ("pools/quartic_plain", 4, "plain", "data/quartic_types/certificates", "plain"),
     ("pools/quartic_hessian", 4, "hessian", "data/quartic_types/certificates", "hessian"),
     ("pools/sextic_plain", 6, "plain", "data/sextic_types/certificates", "plain"),
+    ("pools/sextic_births", 6, "plain", "data/sextic_types/certificates", "births"),
 ]
 
 
