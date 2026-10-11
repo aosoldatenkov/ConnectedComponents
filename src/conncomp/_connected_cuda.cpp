@@ -19,6 +19,10 @@ int ccl_form_trees(const uint8_t *signs, const int *labels, const int *weight, c
                    int min_size, int *nreg, int *nov, int *ok, int *size, int *sign, int *flags, int *parent, int *depth,
                    cudaStream_t stream);
 int ccl_tree_capacity();
+int ccl_fused_capacity(int N, int deg);
+int ccl_fused_trees(const double *coefs, int D, const int *expo, int deg, int N, int eight, int min_size, int rcap,
+                    const int *seams, int n_seams, const int *weight, int B, int *nreg, int *nov, int *ok, int *size,
+                    int *sign, int *flags, int *parent, int *depth, long long *prof, cudaStream_t stream);
 
 static void check(int err) {
     if (err != 0) throw std::runtime_error(std::string("CUDA error: ") + cudaGetErrorString((cudaError_t)err));
@@ -33,6 +37,18 @@ static void form_trees(std::uintptr_t signs, std::uintptr_t labels, std::uintptr
     check(ccl_form_trees(reinterpret_cast<const uint8_t *>(signs), I(labels), I(weight), I(anti), B, M, min_size,
                          I(nreg), I(nov), I(ok), I(size), I(sign), I(flags), I(parent), I(depth),
                          reinterpret_cast<cudaStream_t>(stream)));
+}
+
+static void fused_trees(std::uintptr_t coefs, int D, std::uintptr_t expo, int deg, int N, int eight, int min_size,
+                        int rcap, std::uintptr_t seams, int n_seams, std::uintptr_t weight, int B, std::uintptr_t nreg,
+                        std::uintptr_t nov, std::uintptr_t ok, std::uintptr_t size, std::uintptr_t sign,
+                        std::uintptr_t flags, std::uintptr_t parent, std::uintptr_t depth, std::uintptr_t stream,
+                        std::uintptr_t prof) {
+    if (deg > 12 || D > 64) throw std::runtime_error("fused_trees: degree <= 12 only");
+    auto I = [](std::uintptr_t p) { return reinterpret_cast<int *>(p); };
+    check(ccl_fused_trees(reinterpret_cast<const double *>(coefs), D, I(expo), deg, N, eight, min_size, rcap, I(seams),
+                          n_seams, I(weight), B, I(nreg), I(nov), I(ok), I(size), I(sign), I(flags), I(parent),
+                          I(depth), reinterpret_cast<long long *>(prof), reinterpret_cast<cudaStream_t>(stream)));
 }
 
 static void label_faces(std::uintptr_t signs, std::uintptr_t parent, std::uintptr_t seam_pairs, int n_seams, int B,
@@ -57,4 +73,14 @@ PYBIND11_MODULE(_connected_cuda, m) {
           "sign, flags (bit 0 alive, bit 1 root), parent, depth (B, capacity); nreg = -1 marks forms with more than "
           "`capacity` components.");
     m.attr("tree_capacity") = ccl_tree_capacity();
+    m.def("fused_capacity", &ccl_fused_capacity, py::arg("N"), py::arg("deg"),
+          "Run capacity of fused_trees (limited by the shared memory per block).");
+    m.def("fused_trees", &fused_trees, py::arg("coefs"), py::arg("D"), py::arg("expo"), py::arg("deg"), py::arg("N"),
+          py::arg("eight"), py::arg("min_size"), py::arg("rcap"), py::arg("seams"), py::arg("n_seams"),
+          py::arg("weight"), py::arg("B"), py::arg("nreg"), py::arg("nov"), py::arg("ok"), py::arg("size"),
+          py::arg("sign"), py::arg("flags"), py::arg("parent"), py::arg("depth"), py::arg("stream"),
+          py::arg("prof") = 0,
+          "Region trees directly from float64 coefficients (B, D), one block per form, union-find over row runs. "
+          "Outputs as form_trees; nreg = -1 / -2 for component / run overflow. prof: optional int64 (B, 8) device "
+          "array of clock64() stamps at the phase boundaries (thread 0).");
 }

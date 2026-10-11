@@ -304,18 +304,35 @@ class FaceMesh:
         U = torch.as_tensor(P / np.linalg.norm(P, axis=1, keepdims=True), dtype=DTYPE, device=self.device)
         self.points = U
         self._basis = {}
+        self._expo, self._rcap = {}, {}
 
-    def signs(self, coefs, deg, chunk=None):
-        """uint8 sign classes at the face-grid points for forms (D, B); shape (B, 6 M^2)."""
+    def signs(self, coefs, deg, chunk=None, exact=True):
+        """uint8 sign classes at the face-grid points for forms (D, B); shape (B, 6 M^2).
+
+        Values are computed in float32 (fp64 matrix products are slow on consumer GPUs; TF32 must stay disabled,
+        the PyTorch default). With `exact`, values with |v| < 4e-6 sum |c| are recomputed in float64: monomials are
+        <= 1 at unit points and the float32 error is below (D + 2) * 6e-8 * sum |c| (D <= 36 terms for deg <= 7),
+        so the signs agree with a float64 evaluation.
+        """
         from conncomp.polynomials import monomial_basis, monomials
 
         if deg not in self._basis:
-            self._basis[deg] = monomial_basis(monomials(deg), self.points.T)
-        basis = self._basis[deg]
+            b64 = monomial_basis(monomials(deg), self.points.T)
+            self._basis[deg] = (b64, b64.float())
+        b64, b32 = self._basis[deg]
         chunk = chunk or max(16, int(8e7 // self.n_loc))
         out = torch.empty((coefs.shape[1], self.n_loc), dtype=torch.uint8, device=coefs.device)
         for s0 in range(0, coefs.shape[1], chunk):
-            out[s0 : s0 + chunk] = (coefs[:, s0 : s0 + chunk].T @ basis) >= 0
+            c = coefs[:, s0 : s0 + chunk]
+            assert not torch.backends.cuda.matmul.allow_tf32
+            v = c.T.float() @ b32
+            sg = v >= 0
+            if exact:
+                tol = (4e-6 * c.abs().sum(0)).float()
+                r, col = (v.abs() < tol[:, None]).nonzero(as_tuple=True)
+                if r.numel():
+                    sg[r, col] = (c[:, r] * b64[:, col]).sum(0) >= 0
+            out[s0 : s0 + chunk] = sg
         return out
 
     def sign_pairs(self, signs):
@@ -339,19 +356,20 @@ class FaceMesh:
                                     B, self.M, eight, torch.cuda.current_stream().cuda_stream)
         return parent
 
-    def _trees_cuda(self, signs, labels, min_size, eight):
-        """Region trees (GPUTrees) from CUDA labels with the per-form CUDA tree kernel; forms with more components
-        than the kernel's capacity fall back to the PyTorch path."""
+    @staticmethod
+    def _out_arrays(B, dev):
         from conncomp import _connected_cuda
 
-        B, dev, K = signs.shape[0], signs.device, _connected_cuda.tree_capacity
-        nreg, nov, ok = (torch.empty(B, dtype=torch.int32, device=dev) for _ in range(3))
-        size, sign, flags, parent, depth = (torch.empty((B, K), dtype=torch.int32, device=dev) for _ in range(5))
-        _connected_cuda.form_trees(signs.data_ptr(), labels.data_ptr(), self.weight.data_ptr(), self.anti32.data_ptr(),
-                                   B, self.M, min_size, *(t.data_ptr() for t in (nreg, nov, ok, size, sign, flags,
-                                                                                 parent, depth)),
-                                   torch.cuda.current_stream().cuda_stream)
-        over = nreg < 0
+        K = _connected_cuda.tree_capacity
+        return ([torch.empty(B, dtype=torch.int32, device=dev) for _ in range(3)]
+                + [torch.empty((B, K), dtype=torch.int32, device=dev) for _ in range(5)])
+
+    @staticmethod
+    def _unpack(out):
+        """GPUTrees and the overflow mask (nreg < 0) from the per-form outputs of form_trees / fused_trees."""
+        nreg, nov, ok, size, sign, flags, parent, depth = out
+        B, K = size.shape
+        dev = size.device
         nr = nreg.clamp(min=0).long()
         mask = torch.arange(K, device=dev) < nr[:, None]
         start = torch.cumsum(nr, 0) - nr
@@ -360,17 +378,59 @@ class FaceMesh:
         par = torch.where(par >= 0, par + start[:, None], par)[mask]
         t = GPUTrees(nov.long(), ok.bool(), form, size[mask].long(), sign[mask].long(), (flags[mask] & 1).bool(),
                      (flags[mask] & 2).bool(), par, depth[mask].long())
+        return t, nreg < 0
+
+    @staticmethod
+    def _replace(t, idx, f):
+        """Put the trees f of the forms idx (computed separately) into t (their regions are appended)."""
+        t.n_ovals[idx], t.ok[idx] = f.n_ovals, f.ok
+        r0 = t.form.numel()
+        t.form = torch.cat([t.form, idx[f.form]])
+        t.parent = torch.cat([t.parent, torch.where(f.parent >= 0, f.parent + r0, f.parent)])
+        for name in ("size", "sign", "alive", "is_root", "depth"):
+            setattr(t, name, torch.cat([getattr(t, name), getattr(f, name)]))
+        return t
+
+    def _trees_cuda(self, signs, labels, min_size, eight):
+        """Region trees (GPUTrees) from CUDA labels with the per-form CUDA tree kernel; forms with more components
+        than the kernel's capacity fall back to the PyTorch path."""
+        from conncomp import _connected_cuda
+
+        out = self._out_arrays(signs.shape[0], signs.device)
+        _connected_cuda.form_trees(signs.data_ptr(), labels.data_ptr(), self.weight.data_ptr(), self.anti32.data_ptr(),
+                                   signs.shape[0], self.M, min_size, *(x.data_ptr() for x in out),
+                                   torch.cuda.current_stream().cuda_stream)
+        t, over = self._unpack(out)
         if bool(over.any()):  # rare: noisy forms with more than K components on S^2
             idx = torch.nonzero(over)[:, 0]
             so = signs[idx]
             f = _trees_from_labels(so, self.labels(so, eight), self.nbr4, self.anti, self.weight, min_size,
                                    sign_pairs=self.sign_pairs)
-            t.n_ovals[idx], t.ok[idx] = f.n_ovals, f.ok
-            r0 = t.form.numel()
-            t.form = torch.cat([t.form, idx[f.form]])
-            t.parent = torch.cat([t.parent, torch.where(f.parent >= 0, f.parent + r0, f.parent)])
-            for name in ("size", "sign", "alive", "is_root", "depth"):
-                setattr(t, name, torch.cat([getattr(t, name), getattr(f, name)]))
+            t = self._replace(t, idx, f)
+        return t
+
+    def trees_fused(self, coefs, deg, min_size=3, eight=1, batch=None):
+        """Region trees (GPUTrees) of the curves {form = 0} for forms (D, B) with the fused CUDA kernel (signs,
+        union-find over row runs and trees in shared memory, one block per form; float64 row polynomials). Forms
+        overflowing its capacities fall back to the multi-kernel path."""
+        from conncomp import _connected_cuda
+        from conncomp.polynomials import monomials
+
+        if deg not in self._expo:
+            self._expo[deg] = torch.tensor(monomials(deg), dtype=torch.int32, device=self.device).contiguous()
+            self._rcap[deg] = _connected_cuda.fused_capacity(self.N, deg)
+        expo, rcap = self._expo[deg], self._rcap[deg]
+        B, D = coefs.shape[1], coefs.shape[0]
+        c = coefs.T.to(torch.float64).contiguous()
+        out = self._out_arrays(B, coefs.device)
+        _connected_cuda.fused_trees(c.data_ptr(), D, expo.data_ptr(), deg, self.N, eight, min_size, rcap,
+                                    self.seams.data_ptr(), self.seams.shape[0], self.weight.data_ptr(), B,
+                                    *(x.data_ptr() for x in out), torch.cuda.current_stream().cuda_stream)
+        t, over = self._unpack(out)
+        if bool(over.any()):
+            idx = torch.nonzero(over)[:, 0]
+            so = self.signs(coefs[:, idx], deg)
+            t = self._replace(t, idx, self._trees_cuda(so, self.labels(so, eight), min_size, eight))
         return t
 
     def trees(self, coefs, deg, min_size=3, eight=1, max_nodes=4e7, backend="cuda"):

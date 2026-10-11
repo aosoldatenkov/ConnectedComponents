@@ -102,9 +102,19 @@ def type_codes(t, B):
     return torch.where(valid, 16 * a + b, torch.full_like(a, OTHER))
 
 
+BACKEND = "fused"  # "fused": FaceMesh.trees_fused (one block per form); "multi": FaceMesh.trees (multi-kernel)
+
+
 def classify(fm, c, batch=None):
-    batch = batch or max(1, int(4e8 // fm.n_loc))
-    return torch.cat([type_codes(fm.trees(c[:, s : s + batch], DEG), c[:, s : s + batch].shape[1])
+    """Type codes of the forms c (D, B) on the mesh fm, in batches (the multi-kernel path holds the signs of a
+    batch in GPU memory; the fused kernel only its per-form outputs, about 5 KB per form)."""
+    if BACKEND == "fused":
+        batch = max(batch or 0, 20000)
+        trees = fm.trees_fused
+    else:
+        batch = batch or max(1, int(4e8 // fm.n_loc))
+        trees = fm.trees
+    return torch.cat([type_codes(trees(c[:, s : s + batch], DEG), c[:, s : s + batch].shape[1])
                       for s in range(0, c.shape[1], batch)])
 
 
@@ -679,6 +689,7 @@ def main():
     ap.add_argument("--minutes-a", type=float, default=70)
     ap.add_argument("--minutes-b", type=float, default=45)
     ap.add_argument("--N", type=int, default=30)
+    ap.add_argument("--backend", choices=["fused", "multi"], default="fused", help="CUDA path for the region trees")
     ap.add_argument("--batch", type=int, default=50000)
     ap.add_argument("--reservoir", type=int, default=2000)
     ap.add_argument("--pool", type=int, default=500, help="most robust forms per type in phase A")
@@ -697,6 +708,8 @@ def main():
     ap.add_argument("--cert-timeout", type=float, default=1800)
     ap.add_argument("--out", type=Path, default=Path("pools/sextic_plain"))
     args = ap.parse_args()
+    global BACKEND
+    BACKEND = args.backend
     run = args.out
     run.mkdir(parents=True, exist_ok=True)
     torch.manual_seed(int(time.time()))

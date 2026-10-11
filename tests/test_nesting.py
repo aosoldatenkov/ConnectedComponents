@@ -137,3 +137,26 @@ def test_cuda_tree_kernel_matches_torch():
             assert _key(a) == _key(b)
     odd = fm.signs(sample(5, 100), 5)  # not antipodally symmetric: no root region
     assert not fm._trees_cuda(odd, fm.labels(odd), 3, 1).ok.any()
+
+
+@pytest.mark.skipif(not _has_cuda_module(), reason="CUDA labelling module not built")
+@pytest.mark.parametrize("N", [6, 20, 31])
+def test_fused_kernel_matches_multikernel(N):
+    """Fused per-form kernel (row runs, float64 row polynomials) = multi-kernel path, field by field."""
+    from conncomp.gpu_trees import FaceMesh, GPUTrees
+
+    fm = FaceMesh(N)
+    torch.manual_seed(N)
+    for deg, c in ((6, sample(6, 400)), (6, hessian(5, sample(5, 400))), (4, sample(4, 400))):
+        a, b = fm.trees_fused(c, deg), fm.trees(c, deg)
+        for f in GPUTrees.__dataclass_fields__:
+            assert torch.equal(getattr(a, f), getattr(b, f)), f
+
+
+@pytest.mark.skipif(not _has_cuda_module(), reason="CUDA labelling module not built")
+@pytest.mark.parametrize("name,expr,deg,expected", CASES, ids=[c[0] for c in CASES])
+def test_fused_known_types(name, expr, deg, expected):
+    from conncomp.gpu_trees import FaceMesh, to_nesting_trees
+
+    t = to_nesting_trees(FaceMesh(60).trees_fused(coefs(expr, deg), deg), 1)[0]
+    assert t.ok and t.type == expected
