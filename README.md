@@ -6,9 +6,15 @@ The current target is **Hessian curves**. For a real polynomial f(x, y) of degre
 the Hessian curve is Hess(f) = f_xx f_yy − f_xy² = 0, which has degree 2d − 4. Its image on the graph
 z = f(x, y) is the parabolic curve. We look for f whose Hessian curve has as many
 ovals as possible, in connection with Arnold's problem on the topology of parabolic curves
-and the work of Ortiz-Rodríguez (and Sottile). For reference, the best known examples so far are
-4 ovals (d = 4), 8 ovals (d = 5) and 11 ovals (d = 6) [Ortiz-Rodríguez–Sottile, *Real Hessian Curves*].
-The longer-term goal is higher-dimensional varieties (e.g. cubic surfaces).
+and the work of Ortiz-Rodríguez (and Sottile). For reference, the best known examples have
+(d − 2)² compact ovals in ℝ², i.e. 4 (d = 4), 9 (d = 5), 16 (d = 6), 25 (d = 7), constructed by Viro
+patchworking [Bertrand–Brugallé, *On the number of connected components of the parabolic curve*, 2010];
+earlier random searches found 8 (d = 5) and 11 (d = 6) [Ortiz-Rodríguez–Sottile, *Real Hessian Curves*].
+The Harnack bound for a curve of degree 2d − 4 is (2d − 5)(d − 3) + 1, i.e. 11 (d = 5), 22 (d = 6).
+
+Current questions: is the bound (d − 2)² sharp for d ≥ 5, and which nesting types (arrangements of
+ovals) can Hessian curves realize? Results are certified exactly (see `verify/`). The longer-term goal is
+higher-dimensional varieties (e.g. cubic surfaces).
 
 ## Method
 
