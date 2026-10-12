@@ -14,7 +14,7 @@ The Harnack bound for a curve of degree 2d − 4 is (2d − 5)(d − 3) + 1, i.e
 
 Current questions: is the bound (d − 2)² sharp for d ≥ 5, and which nesting types (arrangements of
 ovals) can Hessian curves realize? Results are certified exactly (see `verify/`). The longer-term goal is
-higher-dimensional varieties (e.g. cubic surfaces).
+higher-dimensional varieties (e.g. degree d surfaces).
 
 ## Method
 
