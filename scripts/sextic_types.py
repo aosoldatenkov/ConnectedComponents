@@ -60,11 +60,17 @@ NCV = 8  # smallest |critical values| stored per pool form
 KIND, DEGF, D, KOSTLAN = None, None, None, None
 
 
+COUNT = False  # "count" mode (curves of degree 8): type code = number of ovals (no nesting grammar)
+
+
 def set_mode(kind):
-    """Plane sextics (curve = f) or Hessian curves of quintics (curve = H(f)); pools always store the forms f."""
-    global KIND, DEGF, D, KOSTLAN
-    KIND = kind
-    DEGF = DEG if kind == "plain" else (DEG + 4) // 2
+    """Plane sextics (curve = f), Hessian curves of quintics (curve = H(f)), or Hessian curves of sextics
+    ("hessian6": curves of degree 8, count mode: cells by oval count); pools always store the forms f."""
+    global KIND, DEGF, D, KOSTLAN, DEG, COUNT
+    COUNT = kind == "hessian6"
+    DEG = 8 if COUNT else 6
+    KIND = "hessian" if COUNT else kind
+    DEGF = DEG if KIND == "plain" else (DEG + 4) // 2
     D = len(monomials(DEGF))
     KOSTLAN = torch.tensor([math.sqrt(math.factorial(DEGF) / (math.factorial(i) * math.factorial(j)
                                                              * math.factorial(k))) for i, j, k in monomials(DEGF)],
@@ -95,13 +101,22 @@ def curve_exact(v):
 def type_name(code):
     if code == OTHER:
         return "other"
+    if COUNT:
+        return str(int(code))
     a, b = divmod(int(code), 16)
     if b == 0:
         return str(a)
     return f"1<{b}>" if a == 0 else f"{a} u 1<{b}>"
 
 
+def inner(code):
+    """Number of inner ovals (b in a u 1<b>); 0 in count mode."""
+    return 0 if COUNT else int(code) % 16
+
+
 def n_ovals(code):
+    if COUNT:
+        return int(code)
     a, b = divmod(int(code), 16)
     return a + b + (b > 0)
 
@@ -117,7 +132,10 @@ def draw(measure, B):
 
 
 def type_codes(t, B):
-    """Type code per form from GPUTrees (OTHER unless a valid sextic type a u 1<b>)."""
+    """Type code per form from GPUTrees (OTHER unless a valid sextic type a u 1<b>; count mode: the number of
+    ovals)."""
+    if COUNT:
+        return torch.where(t.ok & (t.n_ovals < OTHER), t.n_ovals, torch.full_like(t.n_ovals, OTHER))
     dev = t.depth.device
     al = t.alive
     d = torch.where(al, t.depth, torch.zeros_like(t.depth))
@@ -187,7 +205,7 @@ def filter_diverse(args, run):
             c = torch.as_tensor(F[s0 : s0 + 20000].T, device=DEVICE)
             sc, cv, kd = robustness(c, charts, kinds=True)
             ok = sc >= args.min_score
-            if n_ovals(k) >= 5 or k % 16 >= 2:
+            if n_ovals(k) >= 5 or inner(k) >= 2:
                 ok &= classify(confirm, c) == k
             ok = ok.cpu().numpy()
             parts.append((sc.cpu().numpy()[ok], F[s0 : s0 + 20000][ok], cv.cpu().numpy()[ok], kd.cpu().numpy()[ok]))
@@ -414,7 +432,7 @@ def phase_b(args, run, pool_a):
             take = idx[torch.randperm(idx.numel(), device=DEVICE)[: args.cand]]
             f = child[:, take]
             ko = n_ovals(k)
-            risky = ko >= 5 or k % 16 >= 2  # grid artifacts: thin annuli broken into "inner ovals"
+            risky = ko >= 5 or inner(k) >= 2  # grid artifacts: thin annuli broken into "inner ovals"
             if risky:
                 f = f[:, classify(confirm, f) == k]
             if f.shape[1] == 0:
@@ -795,7 +813,7 @@ def write_markdown(path, s):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--stage", choices=["all", "a", "b", "finish"], default="all")
-    ap.add_argument("--kind", choices=["plain", "hessian"], default="plain",
+    ap.add_argument("--kind", choices=["plain", "hessian", "hessian6"], default="plain",
                     help="curves f = 0 of sextics f, or Hessian curves H(f) = 0 of quintics f")
     ap.add_argument("--minutes-a", type=float, default=70)
     ap.add_argument("--minutes-b", type=float, default=45)

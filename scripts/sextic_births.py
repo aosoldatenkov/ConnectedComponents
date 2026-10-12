@@ -113,7 +113,10 @@ def node_of(fm, P):
 
 
 def predicted_code(code, depth, has_child):
-    """Type after a birth inside a region (depth, has children) of a form of type `code`; -1 if not representable."""
+    """Type after a birth inside a region (depth, has children) of a form of type `code`; -1 if not representable.
+    Count mode: one more oval."""
+    if S.COUNT:
+        return int(code) + 1
     a, b = divmod(int(code), 16)
     if depth == 0:
         return 16 * (a + 1) + b if a + 1 < 16 else -1
@@ -290,7 +293,7 @@ def push(F, form, point, delta, cp, cv, keep, radius, ring_goal=1.0, cap=None, s
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--minutes", type=float, default=60)
-    ap.add_argument("--kind", choices=["plain", "hessian"], default="plain",
+    ap.add_argument("--kind", choices=["plain", "hessian", "hessian6"], default="plain",
                     help="curves f = 0 of sextics f, or Hessian curves H(f) = 0 of quintics f")
     ap.add_argument("--pairs", type=int, default=8192, help="events per step")
     ap.add_argument("--cell", type=int, default=1000)
@@ -302,6 +305,8 @@ def main():
     ap.add_argument("--rmax", type=float, default=1e-1)
     ap.add_argument("--ring-goal", type=float, default=0.5, help="crater rim values, relative to the current ones")
     ap.add_argument("--min-score", type=float, default=3e-4)
+    ap.add_argument("--risky-ovals", type=int, default=5, help="children with this many ovals need N = 200")
+    ap.add_argument("--N", type=int, default=30, help="FaceMesh resolution of the children")
     ap.add_argument("--min-angle", type=float, default=0.03)
     ap.add_argument("--reannotate", type=int, default=20, help="steps between re-annotations of the archive")
     ap.add_argument("--checkpoint", type=float, default=5)
@@ -320,14 +325,16 @@ def main():
     ap.add_argument("--no-certify", action="store_true")
     args = ap.parse_args()
     S.set_mode(args.kind)
+    global DEG
+    DEG = S.DEG  # curve degree (8 for hessian6)
     run = args.out
     run.mkdir(parents=True, exist_ok=True)
     rng = np.random.default_rng()
     torch.manual_seed(int(time.time()))
-    fm, charts, confirm = FaceMesh(30), FaceCharts(DEG, N=40), FaceMesh(200)
+    fm, charts, confirm = FaceMesh(args.N), FaceCharts(DEG, N=40), FaceMesh(200)
 
     def risky(k):
-        return S.n_ovals(k) >= 5 or k % 16 >= 2
+        return S.n_ovals(k) >= args.risky_ovals or S.inner(k) >= 2
 
     def insert(k, F, cv):
         """Cells keep a random diverse sample of genuine forms (key = uniform random; robustness = cv[:, 0])."""
@@ -397,7 +404,7 @@ def main():
                 base = 4.0 ** S.n_ovals(int(pr)) * args.novelty / (1.0 + fails[int(pr)] / 1000.0)
             if kd in (0, 2):
                 base /= 1.0 + ann.dist[i] / 0.01
-            if args.mode == "nest" and pr >= 0 and pr % 16 > pk % 16:
+            if args.mode == "nest" and pr >= 0 and S.inner(pr) > S.inner(pk):
                 base *= 5.0  # births inside an oval or an annulus (more inner ovals than the parent)
             if args.mode == "frontier" and S.n_ovals(pk) < top - 1:
                 base *= 0.02
