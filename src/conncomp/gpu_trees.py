@@ -352,8 +352,13 @@ class FaceMesh:
         signs = signs.contiguous()
         B = signs.shape[0]
         parent = torch.empty((B, self.n_loc), dtype=torch.int32, device=signs.device)
-        _connected_cuda.label_faces(signs.data_ptr(), parent.data_ptr(), self.seams.data_ptr(), self.seams.shape[0],
-                                    B, self.M, eight, torch.cuda.current_stream().cuda_stream)
+        step = 65535 // 6  # the tile kernels launch 6 B blocks in the grid's z dimension (limit 65535)
+        for s0 in range(0, B, step):
+            n = min(step, B - s0)
+            _connected_cuda.label_faces(signs[s0].data_ptr(), parent[s0].data_ptr(), self.seams.data_ptr(),
+                                        self.seams.shape[0], n, self.M, eight, torch.cuda.current_stream().cuda_stream)
+            if s0:
+                parent[s0 : s0 + n] += s0 * self.n_loc  # labels are global over the batch
         return parent
 
     @staticmethod
@@ -427,10 +432,9 @@ class FaceMesh:
                                     self.seams.data_ptr(), self.seams.shape[0], self.weight.data_ptr(), B,
                                     *(x.data_ptr() for x in out), torch.cuda.current_stream().cuda_stream)
         t, over = self._unpack(out)
-        if bool(over.any()):
+        if bool(over.any()):  # multi-kernel path, in chunks bounded by GPU memory
             idx = torch.nonzero(over)[:, 0]
-            so = self.signs(coefs[:, idx], deg)
-            t = self._replace(t, idx, self._trees_cuda(so, self.labels(so, eight), min_size, eight))
+            t = self._replace(t, idx, self.trees(coefs[:, idx], deg, min_size, eight))
         return t
 
     def trees(self, coefs, deg, min_size=3, eight=1, max_nodes=4e7, backend="cuda"):

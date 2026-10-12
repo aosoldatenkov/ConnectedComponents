@@ -32,6 +32,7 @@ import argparse
 import json
 import math
 import time
+from collections import defaultdict
 from pathlib import Path
 
 import numpy as np
@@ -76,6 +77,28 @@ def distance_to_curve(Fn, form, p, n_rays=8, n_radii=40, chunk=1024):
     return out
 
 
+def curve_jacobian(x):
+    """Jacobian (P, D_curve, D_f) of the curve map at the generating forms x (P, D_f); None for plain curves."""
+    if S.KIND == "plain":
+        return None
+    from conncomp.critical import _hessian_bilinear
+
+    Sb = _hessian_bilinear(S.DEGF, x.device)  # H_k = f^t T_k f, Sb = T + T^t: dH_k = (Sb_k f) . df
+    return torch.einsum("kij,pj->pki", Sb, x)
+
+
+def curve_rows(Mx, x):
+    """Gradients with respect to the generating forms x (P, D_f) of the values of the normalized curve at the points
+    with monomial values Mx (P, K, D_curve); returns (rows (P, K, D_f), values (P, K))."""
+    C = S.curve(x.T).T
+    nC = C.norm(dim=1, keepdim=True)
+    Cn = C / nC
+    fx = (Mx * Cn[:, None]).sum(2)
+    W = (Mx - fx[..., None] * Cn[:, None]) / nC[:, None]  # d(value)/dC
+    J = curve_jacobian(x)
+    return (W if J is None else W @ J), fx
+
+
 def node_of(fm, P):
     """Local face-grid node index of the points P (K, 3) (nearest grid point on the cube face)."""
     N, M = fm.N, fm.M
@@ -102,23 +125,26 @@ def predicted_code(code, depth, has_child):
 
 
 class Annotation:
-    """Events of a set of forms F (D, n): per form its critical points, per event the target point and prediction."""
+    """Events of a set of generating forms F (D, n): per form the critical points of its curve, per event the target
+    point and the predicted type."""
 
     def __init__(self, fm, charts, F, codes, n_random=16):
         n = F.shape[1]
-        Fn = F / F.norm(dim=0, keepdim=True)
-        crit, morse = critical_points(Fn, DEG, charts=charts)
+        Fn = F / F.norm(dim=0, keepdim=True)  # generating forms
+        Cn = S.curve(Fn)
+        Cn = Cn / Cn.norm(dim=0, keepdim=True)  # their curves
+        crit, morse = critical_points(Cn, DEG, charts=charts)
         crit = crit.select(morse[crit.form] == 1)
-        # wall distances |v| / |grad v| on the unit sphere of coefficients
-        m = monomial_values(crit.point, DEG)
-        g = m - crit.value[:, None] * Fn.T[crit.form]
+        # wall distances |v| / |grad v| (gradient with respect to the unit generating forms)
+        g = torch.cat([curve_rows(monomial_values(crit.point[s0 : s0 + 20000], DEG)[:, None],
+                                  Fn.T[crit.form[s0 : s0 + 20000]])[0][:, 0] for s0 in range(0, len(crit), 20000)])
         d = crit.value.abs() / g.norm(dim=1).clamp(min=1e-300)
         # regions of the critical points and of random nodes
         K = len(crit)
         V = fm.n_loc
         qn = torch.randint(0, V, (n * n_random,), device=DEVICE)
         qf = torch.arange(n, device=DEVICE).repeat_interleave(n_random)
-        depth, has_child, alive = self._regions(fm, Fn, torch.cat([crit.form, qf]),
+        depth, has_child, alive = self._regions(fm, Cn, torch.cat([crit.form, qf]),
                                                 torch.cat([node_of(fm, crit.point), qn]))
         rdepth, rhas, ralive = depth[K:].cpu().numpy(), has_child[K:].cpu().numpy(), alive[K:].cpu().numpy()
         depth, has_child, alive = depth[:K], has_child[:K], alive[:K]
@@ -154,7 +180,7 @@ class Annotation:
         if len(sel):
             p = torch.as_tensor(self.point[sel], dtype=DTYPE, device=DEVICE)
             fp = torch.as_tensor(self.form[sel], device=DEVICE)
-            self.radius[sel] = 0.9 * distance_to_curve(Fn, fp, p).cpu().numpy()
+            self.radius[sel] = 0.9 * distance_to_curve(Cn, fp, p).cpu().numpy()
         # random interior points (pushed without a ring), one per (form, region kind); one random move per form
         rf = np.repeat(np.arange(n), n_random)
         rp = fm.points[qn].cpu().numpy()
@@ -175,8 +201,20 @@ class Annotation:
         self.radius = np.concatenate([self.radius, np.zeros(len(extra))])
 
     @staticmethod
-    def _regions(fm, Fn, q_form, q_node):
-        """(depth, has children, alive) of the regions containing the given nodes (forms q_form)."""
+    def _regions(fm, Fn, q_form, q_node, chunk=2000):
+        """(depth, has children, alive) of the regions containing the given nodes (forms q_form), in chunks of forms."""
+        n = Fn.shape[1]
+        depth = torch.empty(len(q_form), dtype=torch.long, device=DEVICE)
+        has_child = torch.empty(len(q_form), dtype=torch.bool, device=DEVICE)
+        alive = torch.empty(len(q_form), dtype=torch.bool, device=DEVICE)
+        for s0 in range(0, n, chunk):
+            m = (q_form >= s0) & (q_form < s0 + chunk)
+            d, h, a = Annotation._regions_chunk(fm, Fn[:, s0 : s0 + chunk], q_form[m] - s0, q_node[m])
+            depth[m], has_child[m], alive[m] = d, h, a
+        return depth, has_child, alive
+
+    @staticmethod
+    def _regions_chunk(fm, Fn, q_form, q_node):
         signs = fm.signs(Fn, DEG)
         L = fm.labels(signs)
         t = fm._trees_cuda(signs, L, 3, 1)
@@ -202,13 +240,12 @@ def push(F, form, point, delta, cp, cv, keep, radius, ring_goal=1.0, cap=None, s
     """Batched minimal-norm steps on the unit coefficient vectors: f(q) -> -sign(f(q)) delta, with f held fixed at
     RING points at angular distance `radius` around q (craters, values scaled by ring_goal; radius 0: no ring) and
     at the nearby critical points (critical values unchanged, up to `keep`). Returns (D, P)."""
-    c = F.T[form]  # (P, D) unit vectors
+    c = F.T[form]  # (P, D_f) unit generating forms
     P_ = len(form)
     q = torch.as_tensor(point, dtype=DTYPE, device=DEVICE)
     q = q / q.norm(dim=1, keepdim=True)
     rad = torch.as_tensor(radius, dtype=DTYPE, device=DEVICE)
     mq = monomial_values(q, DEG)
-    fq0 = (mq * c).sum(1)
     # ring points
     e1, e2 = tangent_frame(q)
     th = torch.arange(RING, dtype=DTYPE, device=DEVICE) * (2 * math.pi / RING)
@@ -216,8 +253,9 @@ def push(F, form, point, delta, cp, cv, keep, radius, ring_goal=1.0, cap=None, s
                                                         + torch.sin(th)[None, :, None] * e2[:, None])
     mr = monomial_values(ring.reshape(-1, 3), DEG).reshape(P_, RING, -1)
     mr = mr / ring.norm(dim=2, keepdim=True) ** DEG  # values at the unit points
+    _, v0 = curve_rows(torch.cat([mq[:, None], mr], dim=1), c)
+    fq0, rv = v0[:, 0], v0[:, 1:]
     use_r = (rad > 0)[:, None].expand(-1, RING)
-    rv = (mr * c[:, None]).sum(2)
     # nearby critical points of each form (excluding the target point itself)
     pts, vals = cp[form], cv[form].clone()  # (P, k, 3), (P, k)
     same = ((pts - q[:, None]).norm(dim=2) < 1e-6) | ((pts + q[:, None]).norm(dim=2) < 1e-6)
@@ -234,8 +272,8 @@ def push(F, form, point, delta, cp, cv, keep, radius, ring_goal=1.0, cap=None, s
     mask = torch.cat([torch.ones_like(use_k[:, :1]), use_r, use_k], dim=1).to(DTYPE)
     eye = torch.eye(Mx.shape[1], dtype=DTYPE, device=DEVICE)
     for _ in range(steps):
-        fx = (Mx * c[:, None]).sum(2)
-        J = (Mx - fx[..., None] * c[:, None]) * mask[..., None]  # tangent to the unit sphere
+        J, fx = curve_rows(Mx, c)  # (for plain curves: tangent to the unit sphere)
+        J = J * mask[..., None]
         r = (goal - fx) * mask
         A = J @ J.transpose(1, 2)
         scale = torch.diagonal(A, dim1=1, dim2=2).amax(1).clamp(min=1e-300)
@@ -252,8 +290,10 @@ def push(F, form, point, delta, cp, cv, keep, radius, ring_goal=1.0, cap=None, s
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--minutes", type=float, default=60)
+    ap.add_argument("--kind", choices=["plain", "hessian"], default="plain",
+                    help="curves f = 0 of sextics f, or Hessian curves H(f) = 0 of quintics f")
     ap.add_argument("--pairs", type=int, default=8192, help="events per step")
-    ap.add_argument("--cell", type=int, default=300)
+    ap.add_argument("--cell", type=int, default=1000)
     ap.add_argument("--cand", type=int, default=64, help="children scored per type and step")
     ap.add_argument("--keep", type=int, default=12, help="nearby critical values held fixed")
     ap.add_argument("--dmin", type=float, default=1e-3)
@@ -265,7 +305,13 @@ def main():
     ap.add_argument("--min-angle", type=float, default=0.03)
     ap.add_argument("--reannotate", type=int, default=20, help="steps between re-annotations of the archive")
     ap.add_argument("--checkpoint", type=float, default=5)
-    ap.add_argument("--pools", type=Path, default=Path("pools/sextic_plain/phase_a.npz"))
+    ap.add_argument("--pools", type=Path, nargs="+", default=[Path("pools/sextic_plain/phase_a.npz")],
+                    help="seed files: phase A checkpoints (group pool), diverse pools (div), births archives (cell)")
+    ap.add_argument("--mode", choices=["default", "nest", "frontier"], default="default",
+                    help="nest: favour births inside ovals and annuli; frontier: parents from the highest cells")
+    ap.add_argument("--novelty", type=float, default=3.0, help="weight factor of unseen target types (decays)")
+    ap.add_argument("--op-floor", type=float, default=0.05, help="minimum share of each operator")
+    ap.add_argument("--seed-cap", type=int, default=4000, help="seed forms per type considered for the archive")
     ap.add_argument("--out", type=Path, default=Path("pools/sextic_births"))
     ap.add_argument("--reps", type=int, default=3)
     ap.add_argument("--cand-reps", type=int, default=6)
@@ -273,6 +319,7 @@ def main():
     ap.add_argument("--cert-timeout", type=float, default=1800)
     ap.add_argument("--no-certify", action="store_true")
     args = ap.parse_args()
+    S.set_mode(args.kind)
     run = args.out
     run.mkdir(parents=True, exist_ok=True)
     rng = np.random.default_rng()
@@ -287,18 +334,40 @@ def main():
         archive[k] = S.merge_pool(archive.get(k, S.empty_pool()), rng.random(len(F)), F, cv, args.cell,
                                   args.min_angle)
 
-    # --- initial archive: the phase A pools, with the artifact filters
-    _, ga = S.load_npz(args.pools)
-    archive = {}
-    for k, (s, F, cv) in ga["pool"].items():
-        if k == S.OTHER or len(s) == 0:
+    # --- initial archive: seed files (phase A robust pools, filtered diverse pools, births archives)
+    cand = {}  # code -> list of (F, cv)
+    for path in args.pools:
+        if path.suffix == ".txt":  # plain coefficient files of generating forms: classify and score them here
+            from conncomp.io import load_coefs
+
+            F = np.asarray(load_coefs(path), dtype=np.float64).reshape(-1, S.D)
+            if len(F) == 0:
+                continue
+            Ft = torch.as_tensor(F.T, device=DEVICE)
+            codes = S.classify(fm, Ft).cpu().numpy()
+            _, cv = S.robustness(Ft, charts)
+            cv = cv.cpu().numpy()
+            for k in np.unique(codes):
+                cand.setdefault(int(k), []).append((F[codes == k], cv[codes == k]))
             continue
-        ok = s >= args.min_score
+        _, g = S.load_npz(path)
+        for group in ("pool", "div", "cell"):
+            for k, t in g.get(group, {}).items():
+                if k == S.OTHER or len(t) < 3 or len(t[1]) == 0:  # skip raw reservoirs (keys, forms) without scores
+                    continue
+                cand.setdefault(k, []).append((t[1], t[2]))
+    archive = {}
+    for k, parts in cand.items():
+        F = np.concatenate([p[0] for p in parts])
+        cv = np.concatenate([p[1] for p in parts])
+        sel = rng.permutation(len(F))[: args.seed_cap]
+        F, cv = F[sel], cv[sel]
+        ok = cv[:, 0] >= args.min_score
         if risky(k):
             ok &= (S.classify(confirm, torch.as_tensor(F.T, device=DEVICE), batch=40) == k).cpu().numpy()
         if ok.any():
             insert(k, F[ok], cv[ok])
-    first = {S.type_name(k): {"minutes": 0.0, "source": "A"} for k in archive}
+    first = {S.type_name(k): {"minutes": 0.0, "source": "seed"} for k in archive}
     print(f"initial archive: {len(archive)} types: " + ", ".join(sorted(first, key=lambda t: (len(t), t))), flush=True)
 
     stats = {k: np.zeros(5, dtype=np.int64) for k in KINDS}  # tried, changed type, as predicted, accepted, new type
@@ -310,20 +379,46 @@ def main():
         return Annotation(fm, charts, torch.as_tensor(F.T, dtype=DTYPE, device=DEVICE),
                           torch.as_tensor(codes, device=DEVICE))
 
+    fails = defaultdict(int)  # tries of unseen target types without success (novelty bonus decays)
+    op_rate = np.ones(len(KINDS))  # moving average of the reward per try, per operator
+
     def weights(ann):
         size = {k: len(v[0]) for k, v in archive.items()}
         par = ann.codes.cpu().numpy()[ann.form]
+        top = max(S.n_ovals(k) for k in archive)
         w = np.empty(len(ann.form))
         for i in range(len(w)):
-            kd, pr = ann.kind[i], ann.pred[i]
+            kd, pr, pk = ann.kind[i], ann.pred[i], int(par[i])
             if pr < 0:  # saddles, random moves: outcome unknown
-                base = 0.5 * 4.0 ** S.n_ovals(int(par[i])) / math.sqrt(size[int(par[i])])
+                base = 0.5 * 4.0 ** S.n_ovals(pk) / math.sqrt(size[pk])
+            elif pr in archive:
+                base = 4.0 ** S.n_ovals(int(pr)) / math.sqrt(1 + size[pr])
             else:
-                base = 4.0 ** S.n_ovals(int(pr)) * (10.0 if pr not in archive else 1.0 / math.sqrt(1 + size[pr]))
+                base = 4.0 ** S.n_ovals(int(pr)) * args.novelty / (1.0 + fails[int(pr)] / 1000.0)
             if kd in (0, 2):
                 base /= 1.0 + ann.dist[i] / 0.01
+            if args.mode == "nest" and pr >= 0 and pr % 16 > pk % 16:
+                base *= 5.0  # births inside an oval or an annulus (more inner ovals than the parent)
+            if args.mode == "frontier" and S.n_ovals(pk) < top - 1:
+                base *= 0.02
             w[i] = base
-        return w / w.sum()
+        return w
+
+    def sample(ann, w, n):
+        """Events: operator shares from the moving average of rewards (with a floor), then events by weight."""
+        share = np.maximum(op_rate / op_rate.sum(), args.op_floor)
+        present = np.array([(ann.kind == kd).any() for kd in range(len(KINDS))])
+        share = np.where(present, share, 0.0)
+        share /= share.sum()
+        counts = rng.multinomial(n, share)
+        sel = []
+        for kd, m in enumerate(counts):
+            if m == 0:
+                continue
+            idx = np.nonzero(ann.kind == kd)[0]
+            p = w[idx] / w[idx].sum()
+            sel.append(idx[rng.choice(len(idx), m, p=p)])
+        return np.concatenate(sel)
 
     t0 = time.time()
     t_ck = t0
@@ -331,7 +426,7 @@ def main():
     w = weights(ann)
     step, children = 0, 0
     while time.time() - t0 < args.minutes * 60:
-        sel = rng.choice(len(w), args.pairs, p=w)
+        sel = sample(ann, w, args.pairs)
         kinds = ann.kind[sel]
         form = torch.as_tensor(ann.form[sel], device=DEVICE)
         delta = torch.exp(torch.empty(args.pairs, dtype=DTYPE, device=DEVICE).uniform_(math.log(args.dmin),
@@ -354,6 +449,12 @@ def main():
             m = kinds == kd
             stats[name][:3] += [m.sum(), (m & (code_np != pc_np)).sum(), (m & (code_np == ann.pred[sel])).sum()]
         new_cell = False
+        reward = np.zeros(len(KINDS))
+        for kd in range(len(KINDS)):  # unseen targets that were not reached
+            m = (kinds == kd) & (ann.pred[sel] >= 0)
+            for pr in ann.pred[sel][m]:
+                if pr not in archive and pr != -1:
+                    fails[int(pr)] += 1
         for k in np.unique(code_np):
             if k == S.OTHER:
                 continue
@@ -373,10 +474,13 @@ def main():
                                                                                                 device=DEVICE)]
             if len(idx) == 0:
                 continue
+            rare = new or len(archive[k][0]) < args.cell or S.n_ovals(k) >= 5
             for kd, name in enumerate(KINDS):
                 stats[name][3] += (kinds[idx] == kd).sum()
                 if new:
                     stats[name][4] += (kinds[idx] == kd).sum()
+                if rare:
+                    reward[kd] += (kinds[idx] == kd).sum() * (10.0 if new else 1.0)
             insert(k, f.T.cpu().numpy(), cv.cpu().numpy())
             if new:
                 mins = (time.time() - t0) / 60
@@ -384,6 +488,8 @@ def main():
                 first[S.type_name(k)] = {"minutes": round(mins, 2), "source": "births", "via": via}
                 print(f"  [{mins:5.1f} min] new type {S.type_name(k)} ({S.n_ovals(k)} ovals) via {via}", flush=True)
                 new_cell = True
+        tried = np.array([(kinds == kd).sum() for kd in range(len(KINDS))])
+        op_rate = np.where(tried > 0, 0.98 * op_rate + 0.02 * (reward / np.maximum(tried, 1)) * 1e3, op_rate)
         step += 1
         if new_cell or step % args.reannotate == 0:
             ann = annotate()
@@ -395,6 +501,8 @@ def main():
             st = "\n    ".join(f"{k:8s}: {v[0]:>10,} tried, {v[1] / max(v[0], 1):5.1%} changed, "
                                f"{v[2] / max(v[0], 1):5.1%} as predicted, {v[3]:,} accepted ({v[4]:,} new type)"
                                for k, v in stats.items())
+            share = np.maximum(op_rate / op_rate.sum(), args.op_floor)
+            st += "\n    operator shares: " + ", ".join(f"{n} {x / share.sum():.0%}" for n, x in zip(KINDS, share))
             print(f"[{el / 60:5.1f} min] {step} steps, {children:,} children ({children / el:,.0f}/s), "
                   f"{len(archive)} types; highest: " + ", ".join(f"{S.type_name(k)} ({len(archive[k][0])})"
                                                                for k in top) + f"\n    {st}", flush=True)
@@ -409,7 +517,10 @@ def main():
                          for k, v in stats.items()}}
     S.save_npz(run / "archive.npz", {"elapsed": el, "children": children, "first": json.dumps(first)},
                {"cell": archive})
-    new_types = {k: (v[2][:, 0], v[1], v[2]) for k, v in archive.items() if first[S.type_name(k)]["source"] != "A"}
+    # the archive with robustness scores (format of sextic_types phase_b.npz, for its finish stage)
+    S.save_npz(run / "phase_b.npz", {"elapsed": el, "children": children, "first": json.dumps(first)},
+               {"cell": {k: (v[2][:, 0], v[1], v[2]) for k, v in archive.items()}})
+    new_types = {k: (v[2][:, 0], v[1], v[2]) for k, v in archive.items() if first[S.type_name(k)]["source"] != "seed"}
     print(f"done: {children:,} children in {el / 60:.1f} min; {len(archive)} types, {len(new_types)} new: "
           + ", ".join(S.type_name(k) for k in sorted(new_types, key=lambda k: (S.n_ovals(k), k))), flush=True)
     if new_types and not args.no_certify:

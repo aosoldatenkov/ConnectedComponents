@@ -51,14 +51,45 @@ from conncomp.critical import FaceCharts, critical_points
 from conncomp.gpu_trees import FaceMesh
 from conncomp.polynomials import monomials, normalize, sample
 
-DEG = 6
-D = len(monomials(DEG))
+DEG = 6  # degree of the curves (plane sextics, or Hessian curves of quintics)
 OTHER = 256
 NC = 257
 MEASURES = ["uniform", "kostlan"]
-KOSTLAN = torch.tensor([math.sqrt(math.factorial(DEG) / (math.factorial(i) * math.factorial(j) * math.factorial(k)))
-                        for i, j, k in monomials(DEG)], dtype=DTYPE, device=DEVICE)
 NCV = 8  # smallest |critical values| stored per pool form
+# generating forms f: KIND "plain" (curve = f, degree 6) or "hessian" (curve = H(f), f of degree 5); set by set_mode
+KIND, DEGF, D, KOSTLAN = None, None, None, None
+
+
+def set_mode(kind):
+    """Plane sextics (curve = f) or Hessian curves of quintics (curve = H(f)); pools always store the forms f."""
+    global KIND, DEGF, D, KOSTLAN
+    KIND = kind
+    DEGF = DEG if kind == "plain" else (DEG + 4) // 2
+    D = len(monomials(DEGF))
+    KOSTLAN = torch.tensor([math.sqrt(math.factorial(DEGF) / (math.factorial(i) * math.factorial(j)
+                                                             * math.factorial(k))) for i, j, k in monomials(DEGF)],
+                           dtype=DTYPE, device=DEVICE)
+
+
+set_mode("plain")
+
+
+def curve(f):
+    """Curve coefficients (D_curve, B) of generating forms f (D, B)."""
+    if KIND == "plain":
+        return f
+    from conncomp.hessian import hessian
+
+    return hessian(DEGF, f)
+
+
+def curve_exact(v):
+    """Integer curve coefficients of an integer generating form v."""
+    if KIND == "plain":
+        return list(v)
+    from conncomp.rationalize import exact_hessian
+
+    return exact_hessian(DEGF, list(v))
 
 
 def type_name(code):
@@ -81,7 +112,7 @@ def tag(code):
 
 def draw(measure, B):
     if measure == "uniform":
-        return sample(DEG, B)
+        return sample(DEGF, B)
     return normalize(KOSTLAN[:, None] * torch.randn((D, B), dtype=DTYPE, device=DEVICE))
 
 
@@ -106,21 +137,23 @@ BACKEND = "fused"  # "fused": FaceMesh.trees_fused (one block per form); "multi"
 
 
 def classify(fm, c, batch=None):
-    """Type codes of the forms c (D, B) on the mesh fm, in batches (the multi-kernel path holds the signs of a
-    batch in GPU memory; the fused kernel only its per-form outputs, about 5 KB per form)."""
+    """Type codes of the curves of the generating forms c (D, B) on the mesh fm, in batches (the multi-kernel path
+    holds the signs of a batch in GPU memory; the fused kernel only its per-form outputs, about 5 KB per form)."""
     if BACKEND == "fused":
-        batch = max(batch or 0, 20000)
+        batch = batch or 20000
         trees = fm.trees_fused
     else:
         batch = batch or max(1, int(4e8 // fm.n_loc))
         trees = fm.trees
-    return torch.cat([type_codes(trees(c[:, s : s + batch], DEG), c[:, s : s + batch].shape[1])
+    return torch.cat([type_codes(trees(curve(c[:, s : s + batch]), DEG), c[:, s : s + batch].shape[1])
                       for s in range(0, c.shape[1], batch)])
 
 
-def robustness(c, charts):
+def robustness(c, charts, kinds=False):
     """(min |critical value|, the NCV smallest |critical values|) of the normalized forms c (D, B); score 0 if
-    the Morse check fails."""
+    the Morse check fails. With `kinds`, also the kinds (MIN / SADDLE / MAX, -1 if absent) and signs of these
+    critical points."""
+    c = curve(c)  # generating forms -> curves
     B = c.shape[1]
     crit, morse = critical_points(c, DEG, charts=charts)
     counts = torch.bincount(crit.form, minlength=B)
@@ -129,9 +162,38 @@ def robustness(c, charts):
     K = max(int(counts.max()) if len(crit) else 1, NCV)
     pad = torch.full((B, K), float("inf"), dtype=DTYPE, device=c.device)
     pad[crit.form, pos] = crit.value.abs()
-    cv = pad.sort(dim=1).values[:, :NCV]
+    cv, order = pad.sort(dim=1)
+    cv, order = cv[:, :NCV], order[:, :NCV]
     score = torch.where(morse == 1, cv[:, 0], torch.zeros_like(cv[:, 0]))
-    return score, cv
+    if not kinds:
+        return score, cv
+    kp = torch.full((B, K), -1, dtype=torch.long, device=c.device)
+    kp[crit.form, pos] = torch.where(crit.value >= 0, crit.kind.long(), -1 - crit.kind.long())
+    return score, cv, kp.gather(1, order)
+
+
+def filter_diverse(args, run):
+    """Diverse pools after phase A: robustness, kinds and signs of the smallest critical values (encoded as kind for
+    v >= 0 and -1 - kind for v < 0), and the artifact filters (robustness >= min_score; N = 200 for risky types).
+    Writes run/diverse.npz with groups div: code -> (score, F, cv, kinds)."""
+    _, g = load_npz(run / "phase_a.npz")
+    charts, confirm = FaceCharts(DEG, N=40), FaceMesh(200)
+    out = {}
+    for k, (_, F) in sorted(g.get("div", {}).items()):
+        if k == OTHER or len(F) == 0:
+            continue
+        parts = []
+        for s0 in range(0, len(F), 20000):
+            c = torch.as_tensor(F[s0 : s0 + 20000].T, device=DEVICE)
+            sc, cv, kd = robustness(c, charts, kinds=True)
+            ok = sc >= args.min_score
+            if n_ovals(k) >= 5 or k % 16 >= 2:
+                ok &= classify(confirm, c) == k
+            ok = ok.cpu().numpy()
+            parts.append((sc.cpu().numpy()[ok], F[s0 : s0 + 20000][ok], cv.cpu().numpy()[ok], kd.cpu().numpy()[ok]))
+        out[k] = tuple(np.concatenate([p[i] for p in parts]) for i in range(4))
+        print(f"  diverse pool {type_name(k)}: {len(F)} -> {len(out[k][0])} genuine", flush=True)
+    save_npz(run / "diverse.npz", {}, {"div": out})
 
 
 # ---------------------------------------------------------------------------
@@ -202,13 +264,36 @@ def merge_pool(pool, score, F, cv, cap, min_angle=0.0):
 def phase_a(args, run):
     path = run / "phase_a.npz"
     counts = np.zeros((len(MEASURES), NC), dtype=np.int64)
-    res, pool, elapsed = {}, {}, 0.0
+    res, pool, div, elapsed = {}, {}, {}, 0.0
     if path.exists():
         sc, g = load_npz(path)
         counts, elapsed = sc["counts"], float(sc["elapsed"])
-        res, pool = g.get("res", {}), g.get("pool", {})
+        res, pool, div = g.get("res", {}), g.get("pool", {}), g.get("div", {})
     fm, charts = FaceMesh(args.N), FaceCharts(DEG, N=40)
     buf, nbuf = {}, {}
+    # diverse pools on the GPU: code -> (keys, forms (n, D)); pending candidates and key thresholds
+    div_gpu = {k: (torch.as_tensor(v, device=DEVICE), torch.as_tensor(F, device=DEVICE)) for k, (v, F) in div.items()}
+    div_thr = {k: float(v.max()) for k, (v, _) in div.items() if len(v) >= args.diverse}
+    pend, npend = {}, {}
+
+    def merge_div(k):
+        parts = pend.pop(k, [])
+        npend[k] = 0
+        v0, f0 = div_gpu.get(k, (torch.zeros(0, dtype=DTYPE, device=DEVICE), torch.zeros((0, D), dtype=DTYPE,
+                                                                                         device=DEVICE)))
+        v = torch.cat([v0] + [p[0] for p in parts])
+        F = torch.cat([f0] + [p[1] for p in parts])
+        if len(v) > args.diverse:
+            v, o = torch.topk(v, args.diverse, largest=False)
+            F = F[o]
+            div_thr[k] = float(v.max())
+        div_gpu[k] = (v, F)
+
+    def sync_div():
+        for k in list(pend):
+            merge_div(k)
+        for k, (v, F) in div_gpu.items():
+            div[k] = (v.cpu().numpy(), F.cpu().numpy())
 
     def flush(code):
         if not buf.get(code):
@@ -220,7 +305,8 @@ def phase_a(args, run):
         buf[code], nbuf[code] = [], 0
 
     def save():
-        save_npz(path, {"counts": counts, "elapsed": elapsed}, {"res": res, "pool": pool})
+        sync_div()
+        save_npz(path, {"counts": counts, "elapsed": elapsed}, {"res": res, "pool": pool, "div": div})
 
     t0, t_ck, it = time.time(), time.time(), int(counts.sum() // args.batch)
     start_elapsed = elapsed
@@ -240,6 +326,13 @@ def phase_a(args, run):
                 ff = np.concatenate([f0, f[:, sel].T.cpu().numpy()])
                 o = np.argsort(u)[: args.reservoir]
                 res[(m, k)] = (u[o], ff[o])
+            if k != OTHER and args.diverse > 0:  # diverse pool: uniform sample over both measures (bottom-k keys),
+                key2 = torch.rand(idx.numel(), dtype=DTYPE, device=DEVICE)  # buffered and merged on the GPU
+                sel2 = key2 < div_thr.get(k, 2.0)
+                pend.setdefault(k, []).append((key2[sel2], f[:, idx[sel2]].T))
+                npend[k] = npend.get(k, 0) + 1
+                if npend[k] >= 64:
+                    merge_div(k)
             if k != OTHER:
                 take = idx[torch.randperm(idx.numel(), device=DEVICE)[: args.cand]]
                 buf.setdefault(k, []).append(f[:, take])
@@ -264,6 +357,8 @@ def phase_a(args, run):
     save()
     print(f"phase A done: {counts.sum():,} forms in {elapsed / 60:.1f} min, "
           f"{int((counts.sum(0)[:OTHER] > 0).sum())} types", flush=True)
+    if args.diverse > 0:
+        filter_diverse(args, run)
     return counts, res, pool
 
 
@@ -493,6 +588,8 @@ def to_float_columns(vs):
 
 
 def integer_candidates(f, scales):
+    if KIND == "hessian":  # terms of degree <= 1 in x, y do not affect H(f)
+        f = f * np.array([i + j >= 2 for i, j, _ in monomials(DEGF)])
     f = f / np.abs(f).max()
     out, seen = [], set()
     for s in scales:
@@ -514,6 +611,10 @@ def diverse(F, n, tol=0.95):
         if len(keep) == n:
             break
     return keep
+
+
+def n_reps(args, k):
+    return getattr(args, "reps_high", args.reps) if n_ovals(k) >= 8 else args.reps
 
 
 def representatives(args, run, pools):
@@ -550,16 +651,17 @@ def representatives(args, run, pools):
         for attempt in range(3):
             tasks, meta = [], {}
             for k, plan in plans.items():
-                if len(reps[k]) >= args.reps:
+                if len(reps[k]) >= n_reps(args, k):
                     continue
                 done = {r["pool_index"] for r in reps[k]}
                 for i, passing in plan:
                     if i in done or attempt >= len(passing):
                         continue
                     v, sc = passing[attempt]
-                    wit = [w["point"] for w in witnesses(v, DEG, 800)]
+                    cc = curve_exact(v)
+                    wit = [w["point"] for w in witnesses(cc, DEG, 800)]
                     tid = len(certs) + len(tasks)
-                    tasks.append((tid, v, n_ovals(k), wit, attempt))
+                    tasks.append((tid, cc, n_ovals(k), wit, attempt))
                     meta[tid] = (k, i, v, sc)
             if not tasks:
                 break
@@ -580,13 +682,17 @@ def representatives(args, run, pools):
                 print(f"  {type_name(k):12s} pool #{i} height {max(map(abs, v))}: "
                       f"{out.get('type', out.get('reason', 'not certified'))} ({out.get('seconds', 0):.0f} s)",
                       flush=True)
-                if ok and len(reps[k]) < args.reps:
+                if ok and len(reps[k]) < n_reps(args, k):
                     x, y = sp.symbols("x y")
                     rep = {"type": type_name(k), "ovals": n_ovals(k), "f": v, "height": max(map(abs, v)),
-                           "f_affine": str(sp.expand(to_sympy(v, DEG, x, y, 1))), "pool_index": i,
+                           "f_affine": str(sp.expand(to_sympy(v, DEGF, x, y, 1))), "pool_index": i,
                            "robustness": float(pools[k][0][i]),
                            "certificate": {kk: out[kk] for kk in ("upper_bound", "upper_method", "lower_bound",
                                                                   "flint_agree", "base_point", "nesting")}}
+                    if KIND == "hessian":
+                        cc = curve_exact(v)
+                        rep["hessian"] = cc
+                        rep["hessian_affine"] = str(sp.expand(to_sympy(cc, DEG, x, y, 1)))
                     reps[k].append(rep)
                     (run / f"cert_{tag(k)}_{len(reps[k])}.json").write_text(
                         json.dumps({"rep": rep, "certificate": out}, indent=1, default=str))
@@ -598,7 +704,8 @@ def finish(args, run):
     rng = np.random.default_rng(0)
     sa, ga = load_npz(run / "phase_a.npz")
     counts, res, pool_a = sa["counts"], ga.get("res", {}), ga.get("pool", {})
-    sb, gb = load_npz(run / "phase_b.npz") if (run / "phase_b.npz").exists() else ({}, {})
+    pb = args.phase_b or run / "phase_b.npz"
+    sb, gb = load_npz(pb) if pb.exists() else ({}, {})
     archive = gb.get("cell", {})
     first = json.loads(str(sb["first"])) if "first" in sb else {}
     ref = FaceMesh(150)
@@ -639,19 +746,21 @@ def finish(args, run):
     summary["representatives"] = {t: len(r) for t, r in reps.items()}
     summary["candidates_passing_grid"] = n_plans
     (run / "summary.json").write_text(json.dumps(summary, indent=1))
-    out = Path("data/sextic_types")
+    out = args.data_out.parent
     out.mkdir(parents=True, exist_ok=True)
-    desc = ("Integer plane sextics (coefficients in the order of conncomp.polynomials.monomials(6)) of each nesting "
-            "type found; oval count certified exactly (pencil tangents + separating polygons, FLINT cross-check); "
-            "nesting from the signs of the pairwise separated witnesses and of the certified base point.")
-    (out / "plain.json").write_text(json.dumps({"description": desc, "representatives": reps}, indent=1))
+    what = ("Integer plane sextics f (coefficients in the order of conncomp.polynomials.monomials(6))" if
+            KIND == "plain" else "Integer quintics f (monomials(5)) whose Hessian curves H(f) (monomials(6)) are")
+    desc = (what + " of each nesting type found; oval count certified exactly (pencil tangents + separating "
+            "polygons, FLINT cross-check); nesting from the signs of the pairwise separated witnesses and of the "
+            "certified base point.")
+    args.data_out.write_text(json.dumps({"description": desc, "representatives": reps}, indent=1))
     write_markdown(run / "summary.md", summary)
     print((run / "summary.md").read_text())
 
 
 def write_markdown(path, s):
     a, b = s["phase_a"], s["phase_b"]
-    lines = ["# Plane sextics: nesting types", "",
+    lines = ["# " + ("Plane sextics" if KIND == "plain" else "Hessian curves of quintics") + ": nesting types", "",
              f"Phase A: {a['forms']:,} random forms in {a['minutes']:.1f} min, {a['types']} types. "
              f"Phase B: {b['children']:,} children in {b['minutes']:.1f} min, {b['types']} types in the archive.", ""]
     for name, m in s["measures"].items():
@@ -675,7 +784,7 @@ def write_markdown(path, s):
               "|---|---|---|---|---|---|---|"]
     for t, p in sorted(s["pools"].items(), key=lambda kv: (kv[1]["ovals"], kv[0])):
         fi = s["phase_b"]["first_found"].get(t, {})
-        src = "A" if fi.get("source", "A") == "A" else f"B ({fi['minutes']:.0f} min)"
+        src = {"A": "A", "seed": "seed"}.get(fi.get("source", "A"), f"B ({fi.get('minutes', 0):.0f} min)")
         name = t if p["genuine"] else f"~~{t}~~ (artifact)"
         lines.append(f"| {name} | {p['ovals']} | {src} | {p['phase_a_confirmed_N400']}/{p['phase_a']} | "
                      f"{p['phase_b_confirmed_N400']}/{p['phase_b']} | {p['best_robustness']:.2g} | "
@@ -686,6 +795,8 @@ def write_markdown(path, s):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--stage", choices=["all", "a", "b", "finish"], default="all")
+    ap.add_argument("--kind", choices=["plain", "hessian"], default="plain",
+                    help="curves f = 0 of sextics f, or Hessian curves H(f) = 0 of quintics f")
     ap.add_argument("--minutes-a", type=float, default=70)
     ap.add_argument("--minutes-b", type=float, default=45)
     ap.add_argument("--N", type=int, default=30)
@@ -703,6 +814,10 @@ def main():
     ap.add_argument("--rmax", type=float, default=1e-1)
     ap.add_argument("--checkpoint", type=float, default=10)
     ap.add_argument("--reps", type=int, default=3)
+    ap.add_argument("--reps-high", type=int, default=3, help="representatives per type with >= 8 ovals")
+    ap.add_argument("--diverse", type=int, default=0, help="phase A: diverse pool size per type (0: off)")
+    ap.add_argument("--phase-b", type=Path, default=None, help="finish: archive file (default run/phase_b.npz)")
+    ap.add_argument("--data-out", type=Path, default=Path("data/sextic_types/plain.json"))
     ap.add_argument("--cand-reps", type=int, default=6, help="pool forms tried per type for representatives")
     ap.add_argument("--workers", type=int, default=20)
     ap.add_argument("--cert-timeout", type=float, default=1800)
@@ -710,6 +825,7 @@ def main():
     args = ap.parse_args()
     global BACKEND
     BACKEND = args.backend
+    set_mode(args.kind)
     run = args.out
     run.mkdir(parents=True, exist_ok=True)
     torch.manual_seed(int(time.time()))

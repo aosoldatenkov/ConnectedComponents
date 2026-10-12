@@ -15,6 +15,8 @@ RUNS = [  # (pools directory, degree of f, curve kind, output directory, file pr
     ("pools/quartic_hessian", 4, "hessian", "data/quartic_types/certificates", "hessian"),
     ("pools/sextic_plain", 6, "plain", "data/sextic_types/certificates", "plain"),
     ("pools/sextic_births", 6, "plain", "data/sextic_types/certificates", "births"),
+    ("pools/sextic_overnight/A", 6, "plain", "data/sextic_types/certificates", "overnight"),
+    ("pools/hessian_overnight/A", 5, "hessian", "data/hessian_types/certificates", "overnight"),
 ]
 
 

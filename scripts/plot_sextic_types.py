@@ -30,8 +30,8 @@ def tag(t):
 
 
 def cert_dict(rep, cert):
-    d = {"hessian": rep["f"], "hessian_deg": 6, "deg": 6, "approximation": {"height": rep["height"]},
-         "ovals_grid": {"0": 0}, "proven_ovals": rep["ovals"]}
+    d = {"hessian": rep.get("hessian", rep["f"]), "hessian_deg": 6, "deg": 6,
+         "approximation": {"height": rep["height"]}, "ovals_grid": {"0": 0}, "proven_ovals": rep["ovals"]}
     if cert:
         lo = cert["lower"]
         d["lower"] = {"paths": lo["paths"]}
@@ -43,10 +43,23 @@ def cert_dict(rep, cert):
 SOURCES = [  # (representatives file, certificates directory, file prefix)
     ("data/sextic_types/plain.json", Path("pools/sextic_plain"), "plain"),
     ("data/sextic_types/births.json", Path("pools/sextic_births"), "births"),
+    ("data/sextic_types/overnight.json", Path("pools/sextic_overnight/A"), "overnight"),
 ]
 
 
+HESSIAN_SOURCES = [("data/hessian_types/overnight.json", Path("pools/hessian_overnight/A"), "overnight")]
+
+
 def main():
+    import argparse
+
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--kind", choices=["plain", "hessian"], default="plain")
+    kind = ap.parse_args().kind
+    global OUT, FORMS, SOURCES
+    if kind == "hessian":
+        OUT, FORMS, SOURCES = Path("figures/hessian_types"), Path("pools/figures/hessian_types"), HESSIAN_SOURCES
+    what = "Plane sextic f = 0" if kind == "plain" else "Hessian curve H(f) = 0 of a quintic f"
     OUT.mkdir(parents=True, exist_ok=True)
     FORMS.mkdir(parents=True, exist_ok=True)
     first = {}  # type -> (representative, source) for the overview
@@ -61,10 +74,10 @@ def main():
                 cert = json.loads(p.read_text())["certificate"] if p.exists() else None
                 fig, ax = plt.subplots(figsize=(8, 8))
                 plot_certificate(cert_dict(rep, cert), width=900, extent=EXT, ax=ax)
-                ax.set_title(f"Plane sextic f = 0: type {t} ({rep['ovals']} ovals), height {rep['height']} "
+                ax.set_title(f"{what}: type {t} ({rep['ovals']} ovals), height {rep['height']} "
                              "(certified)", fontsize=10)
-                fig.text(0.5, 0.01, "f = " + rep["f_affine"].replace("**", "^").replace("*", ""), ha="center",
-                         fontsize=6, wrap=True)
+                lab = "f = " + rep["f_affine"] + (f"\nH = {rep['hessian_affine']}" if "hessian_affine" in rep else "")
+                fig.text(0.5, 0.01, lab.replace("**", "^").replace("*", ""), ha="center", fontsize=6, wrap=True)
                 fig.savefig(FORMS / f"{prefix}_{tag(t)}_{i + 1}.png", dpi=120, bbox_inches="tight")
                 plt.close(fig)
     types = sorted(first, key=lambda t: (first[t][0]["ovals"], t))
@@ -77,14 +90,15 @@ def main():
             continue
         rep, prefix = first[types[n]]
         plot_certificate(cert_dict(rep, None), width=500, extent=EXT, ax=ax, show_loop=False)
-        mark = " *" if prefix == "births" else ""
+        mark = " *" if prefix in ("births", "overnight") else ""
         ax.set_title(f"{types[n]} (height {rep['height']}){mark}", fontsize=9)
         ax.set_xticks([])
         ax.set_yticks([])
-    fig.suptitle(f"Plane sextics: certified integer forms of the {len(types)} nesting types found "
+    title = "Plane sextics" if kind == "plain" else "Hessian curves of quintics"
+    fig.suptitle(f"{title}: certified integer forms of the {len(types)} nesting types found "
                  "(* = births search; stereographic chart, unit disk = RP²)", fontsize=12)
     fig.tight_layout(rect=(0, 0, 1, 0.98))
-    fig.savefig(OUT / "plain_overview.png", dpi=100)
+    fig.savefig(OUT / ("plain_overview.png" if kind == "plain" else "overview.png"), dpi=100)
     plt.close(fig)
     print(f"{len(types)} types")
 
