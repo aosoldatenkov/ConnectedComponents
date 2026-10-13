@@ -57,6 +57,21 @@ def perturb(center, n, r, basis=None):
     return normalize(B @ (a + r * torch.randn((B.shape[1], n), dtype=DTYPE, device=DEVICE)))
 
 
+def perturb_subspace(basis, n, r, device=DEVICE):
+    """N normalized forms in a Gaussian neighbourhood of radius `r` of the subspace spanned by `basis` (D, k).
+
+    A point u is drawn uniformly from the unit sphere of the subspace, then Gaussian noise of standard deviation r
+    per coordinate is added in the orthogonal complement only, and the result is normalized. So the sample is
+    uniform along the subspace (up to the final normalization) and Gaussian in the transversal directions.
+    """
+    Q, _ = torch.linalg.qr(_basis_tensor(basis, device))  # orthonormal basis of the span (D, k)
+    g = torch.randn((Q.shape[1], n), dtype=DTYPE, device=device)
+    u = Q @ (g / g.norm(dim=0, keepdim=True))
+    z = torch.randn((Q.shape[0], n), dtype=DTYPE, device=device)
+    z = z - Q @ (Q.T @ z)  # transversal component
+    return normalize(u + r * z)
+
+
 def monomial_basis(mons, pts):
     """Values of the monomials `mons` at `pts` (shape (3, *grid)); returns shape (len(mons), *grid)."""
     return torch.stack([pts[0].pow(i) * pts[1].pow(j) * pts[2].pow(k) for i, j, k in mons])

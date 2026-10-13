@@ -78,3 +78,21 @@ def test_bases_for_plain_curves():
     assert symmetry("x", 6, for_hessian=False).dim == 16 and symmetry("x", 6).dim == 16 - 2
     s = symmetry("D3", 6, for_hessian=False)
     assert all(is_semi_invariant(col, 6, s) for col in s.basis.T)
+
+
+def test_perturb_subspace():
+    import torch
+
+    from conncomp import DEVICE
+    from conncomp.polynomials import perturb_subspace
+
+    sym = symmetry("x", 5)
+    B = torch.as_tensor(np.asarray(sym.basis, dtype=np.float64), device=DEVICE)
+    Q, _ = torch.linalg.qr(B / B.norm(dim=0, keepdim=True))
+    on = perturb_subspace(sym.basis, 200, 0.0)  # r = 0: unit forms in the span
+    assert torch.allclose(on.norm(dim=0), torch.ones(200, dtype=on.dtype, device=on.device))
+    assert float((on - Q @ (Q.T @ on)).norm()) < 1e-10
+    near = perturb_subspace(sym.basis, 4000, 1e-3)  # transversal part has std about r per coordinate
+    perp = near - Q @ (Q.T @ near)
+    D, k = Q.shape
+    assert abs(float(perp.pow(2).sum(0).mean()) / ((D - k) * 1e-6) - 1) < 0.1

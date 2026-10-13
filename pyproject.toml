@@ -17,6 +17,7 @@ dependencies = [
 
 [project.scripts]
 conncomp-search = "conncomp.search:main"
+conncomp-subspace = "conncomp.subspace_search:main"
 conncomp-rationalize = "conncomp.rationalize:main"
 conncomp-certify = "conncomp.certify:main"
 conncomp-plot = "conncomp.plotting:main"
