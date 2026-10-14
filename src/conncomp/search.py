@@ -1,8 +1,15 @@
 """Interactive (curses) adaptive search for forms with many sign components.
 
 Each iteration evaluates a batch of forms, drawn either uniformly at random or as
-small perturbations of good forms found earlier (kept in two caches). Press `q`
-to stop; the best forms found are then written to the output file.
+small perturbations of good forms found earlier. The good forms are kept in a diverse
+cache (conncomp.pool.DiverseCache: members pairwise at least --min-angle apart, parents
+drawn uniformly over lineages), so the search does not collapse onto the descendants of
+one form. Press `q` to stop; the cached forms are then written to the output file, best first.
+
+With --collect MIN the search also builds a pool: every exactly counted form with at least MIN ovals is appended to
+<out stem>_ovals<n>.txt (written every --dump-every seconds and on exit), thinned to curves at least --collect-angle
+apart within each oval count; the Euler screen then passes forms estimated near MIN as well (at most --screen-cap
+per batch). Output goes to output/ by default.
 
     uv run conncomp-search --deg 6 --width 100
 """
@@ -11,11 +18,15 @@ import argparse
 import curses as cr
 import random
 import time
-from collections import defaultdict, deque
+from collections import defaultdict
 from pathlib import Path
+
+import numpy as np
+import torch
 
 from conncomp import DEVICE
 from conncomp.io import save_coefs
+from conncomp.pool import Collector, DiverseCache, descriptors
 from conncomp.polynomials import perturb, sample
 from conncomp.components import CountPipeline
 from conncomp.euler import EulerScreen, select_candidates
@@ -27,11 +38,13 @@ PERTURB_RADIUS = 1e-1
 
 
 def loop(stdscr, deg, width, batch_size, filtr, use_hessian, out_path, min_comp=8, sym=None, screen=None,
-         slack=2, cap=50000):
-    """Run the search until `q` is pressed; returns the list of best coefficient vectors.
+         slack=2, cap=50000, min_angle=10.0, uniform_share=1 / 3, collector=None):
+    """Run the search until `q` is pressed; returns (forms, oval counts) of the cache, best first.
 
-    Cache policy: cache1 always receives forms reaching the current maximum. cache0 receives
-    forms with at least `min_comp` ovals (plain mode) or within 2 of the maximum (Hessian mode).
+    Cache policy (conncomp.pool.DiverseCache): forms with at least max - 2 ovals (Hessian mode), or at least
+    min(min_comp, max) ovals (plain mode), are offered to a cache whose members are pairwise at least `min_angle`
+    degrees apart (between the normalized curves); parents are drawn uniformly over lineages (the uniform sample a
+    form descends from). A share `uniform_share` of the batches are fresh uniform samples.
 
     With `screen` (conncomp.euler.EulerScreen), every batch is screened on the GPU and only forms
     whose estimated oval count is at least (maximum found - slack), at most `cap` of them, are
@@ -41,33 +54,31 @@ def loop(stdscr, deg, width, batch_size, filtr, use_hessian, out_path, min_comp=
     stdscr.nodelay(True)
     iteration = 0
     max_comp_found = 0
-    cache0 = deque([], CACHE_LEN)
-    cache1 = deque([], CACHE_LEN)
+    cache = DiverseCache(CACHE_LEN, min_angle)
     comp_counts = defaultdict(int)
+
+    def screen_floor(mx):  # collect mode: also count forms near the collection minimum
+        return mx - slack if collector is None else min(mx, collector.min_ovals) - slack
     exp = Experiment(deg, width, use_hessian)
     basis = sym.basis if sym is not None else None
     # The CPU counts batch k on a worker thread while the GPU prepares batch k + 1
     pipe = CountPipeline(exp.pat, filtr)
-    t_start, rate, generated, counted = time.perf_counter(), 0.0, 0, 0
+    t_start, rate, generated, counted, n_uniform = time.perf_counter(), 0.0, 0, 0, 0
 
-    def process(counts, coefs):
+    def process(counts, coefs, lineage):
         nonlocal max_comp_found
-        cpu_coefs = coefs.cpu().numpy()
-        for j, c in enumerate(counts):
-            l = c - 1  # number of ovals
-            comp_counts[l] += 1
-            if l > max_comp_found:
-                max_comp_found = l
-            if use_hessian:
-                if l == max_comp_found:
-                    cache1.append(cpu_coefs[:, j])
-                elif l >= max_comp_found - 2 and len(cache0) < CACHE_LEN:
-                    cache0.append(cpu_coefs[:, j])
-            else:
-                if l >= min_comp and len(cache0) < CACHE_LEN:
-                    cache0.append(cpu_coefs[:, j])
-                if l == max_comp_found:
-                    cache1.append(cpu_coefs[:, j])
+        l = np.asarray(counts) - 1  # numbers of ovals
+        if collector is not None:
+            collector.add(coefs, l)
+        for x in l.tolist():
+            comp_counts[x] += 1
+        max_comp_found = max(max_comp_found, int(l.max()) if len(l) else 0)
+        thr = max_comp_found - 2 if use_hessian else min(min_comp, max_comp_found)  # plain: also the current max
+        sel = np.nonzero(l >= thr)[0]
+        if len(sel):
+            c = coefs[:, torch.as_tensor(sel, device=coefs.device)]
+            lin = lineage if np.isscalar(lineage) else [lineage[i] for i in sel]
+            cache.add(c, descriptors(c, deg, use_hessian), l[sel], lin)
 
     while True:
         stdscr.erase()
@@ -78,36 +89,45 @@ def loop(stdscr, deg, width, batch_size, filtr, use_hessian, out_path, min_comp=
         stdscr.addstr(1, 0, f"Iteration: {iteration};\t Total samples: {generated:,};\t {rate:,.0f} samples/s"
                       + scr_txt)
         stdscr.addstr(2, 0, "Total counts: " + " ".join(f"{i}: {comp_counts[i]};" for i in sorted(comp_counts)))
-        stdscr.addstr(3, 0, f"Cache 0: {len(cache0)};\t Cache 1: {len(cache1)}")
-        stdscr.addstr(4, 0, f"Maximal number of components found: {max_comp_found}")
+        stdscr.addstr(3, 0, f"Cache: {len(cache)} forms (pairwise >= {min_angle:g} deg apart) in {cache.lineages()} "
+                      f"lineages; ovals: " + ", ".join(f"{k}: {v}" for k, v in cache.histogram().items()))
+        coll = f";\t collected (>= {collector.min_ovals}; kept/seen): {collector.summary()}" if collector else ""
+        stdscr.addstr(4, 0, f"Maximal number of components found: {max_comp_found}" + coll)
         stdscr.addstr(5, 0, f"Press q to stop and save to {out_path}")
         stdscr.refresh()
 
-        dice = random.randrange(3)
-        if dice == 0 and cache0:
-            coefs = perturb(cache0.popleft(), batch_size, PERTURB_RADIUS, basis)
-        elif dice == 1 and cache1:
-            coefs = perturb(cache1[random.randrange(len(cache1))], batch_size, PERTURB_RADIUS, basis)
+        if len(cache) and random.random() >= uniform_share:
+            parent, lineage = cache.parent()
+            coefs = perturb(parent, batch_size, PERTURB_RADIUS, basis)
         else:
             coefs = sample(deg, batch_size, basis=basis)
+            lineage = None  # set per form below
 
         generated += coefs.shape[1]
+        idx = None
         if screen is not None:
             est = screen.estimate(coefs)
-            coefs = coefs[:, select_candidates(est, max_comp_found - slack, cap)]
+            idx = select_candidates(est, screen_floor(max_comp_found), cap)
+            coefs = coefs[:, idx]
+        if lineage is None:  # unrelated uniform forms: one new lineage each
+            m = coefs.shape[1]
+            lineage = list(range(n_uniform, n_uniform + m))
+            n_uniform += m
         if coefs.shape[1]:
-            pipe.submit(exp.signs(coefs), coefs)
-        for counts, c in pipe.results():
-            process(counts, c)
+            pipe.submit(exp.signs(coefs), (coefs, lineage))
+        for counts, (c, lin) in pipe.results():
+            process(counts, c, lin)
             iteration += 1
             counted += len(counts)
         rate = generated / (time.perf_counter() - t_start)
 
         if stdscr.getch(0, 0) in (ord("q"), ord("Q")):
-            for counts, c in pipe.results(0):
-                process(counts, c)
+            for counts, (c, lin) in pipe.results(0):
+                process(counts, c, lin)
             pipe.close()
-            return list(reversed(cache1))
+            if collector is not None:
+                collector.dump()
+            return cache.best()
 
 
 def main(argv=None):
@@ -125,24 +145,42 @@ def main(argv=None):
     p.add_argument("--screen-slack", type=int, default=2,
                    help="count forms whose estimate is >= maximum found - slack (default: 2)")
     p.add_argument("--screen-cap", type=int, default=50000, help="max forms counted exactly per batch (default: 50000)")
-    p.add_argument("--out", type=Path, default=None, help="output file (default: data/cache_<mode>_deg<d>_<time>.txt)")
+    p.add_argument("--min-angle", type=float, default=10.0,
+                   help="minimal angle in degrees between cached forms (normalized curves; default: 10)")
+    p.add_argument("--uniform-share", type=float, default=1 / 3, help="share of fresh uniform batches (default: 1/3)")
+    p.add_argument("--collect", type=int, default=None, metavar="MIN",
+                   help="also save every counted form with at least MIN ovals to <out stem>_ovals<n>.txt (appended "
+                        "periodically); the screen then counts forms estimated near MIN as well")
+    p.add_argument("--dump-every", type=float, default=60.0, help="seconds between dumps of collected forms")
+    p.add_argument("--collect-angle", type=float, default=5.0,
+                   help="thin the collected forms: keep a form only if its curve is at least this many degrees from "
+                        "all kept forms with the same oval count (default: 5; 0: keep all)")
+    p.add_argument("--out", type=Path, default=None,
+                   help="output file (default: output/cache_<mode>_deg<d>_<time>.txt)")
     args = p.parse_args(argv)
 
     use_hessian = not args.no_hessian
     sym = symmetry(args.symmetry, args.deg) if args.symmetry else None
     stamp = time.strftime("%Y%m%d-%H%M%S")
     tag = f"_sym-{args.symmetry.replace(':', '_').replace(',', '_')}" if sym else ""
-    out = args.out or Path("data") / f"cache_{'H' if use_hessian else 'f'}_deg{args.deg}{tag}_{stamp}.txt"
+    out = args.out or Path("output") / f"cache_{'H' if use_hessian else 'f'}_deg{args.deg}{tag}_{stamp}.txt"
     random.seed()
     screen = None if args.no_screen else EulerScreen(args.deg, N=args.screen_lattice, use_hessian=use_hessian)
     batch = args.batch or (50000 if screen is None else 1_000_000)
     if screen is not None:
         screen.estimate(sample(args.deg, 10))  # compile before entering curses
-    best = cr.wrapper(loop, args.deg, args.width, batch, args.filter, use_hessian, out, sym=sym, screen=screen,
-                      slack=args.screen_slack, cap=args.screen_cap)
+    collector = (Collector(out, args.collect, args.dump_every, args.collect_angle, args.deg, use_hessian)
+                 if args.collect is not None else None)
+    best, counts = cr.wrapper(loop, args.deg, args.width, batch, args.filter, use_hessian, out, sym=sym,
+                              screen=screen, slack=args.screen_slack, cap=args.screen_cap, min_angle=args.min_angle,
+                              uniform_share=args.uniform_share, collector=collector)
     out.parent.mkdir(parents=True, exist_ok=True)
     save_coefs(out, best)
-    print(f"Saved {len(best)} coefficient vectors to {out}")
+    hist = {k: counts.count(k) for k in sorted(set(counts), reverse=True)}
+    print(f"Saved {len(best)} coefficient vectors to {out} (best first; ovals: {hist})")
+    if collector is not None:
+        print(f"Collected forms with >= {args.collect} ovals ({collector.summary()}) in "
+              f"{collector.file('<n>').name.replace('<n>', 'N')} files next to it")
 
 
 if __name__ == "__main__":

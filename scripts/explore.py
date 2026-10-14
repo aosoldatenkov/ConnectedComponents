@@ -31,8 +31,8 @@ save_coefs3 = center_scan(5, 200, save_coefs2[10][2], 1e-2, 1000, 1, 10, filtr=3
 save_coefs4 = center_scan(5, 500, save_coefs3[10][-19], 1e-2, 100, 1, 10, filtr=3)
 
 # %% Load the best sextics found by the interactive search and plot their Hessian curves
-cache = load_coefs("../output/cache3_H_6.txt")
-plot_negative_regions(6, 200, cache[:10])
+cache = load_coefs("../output/cache_H_deg5_20261013-233106_ovals9.txt")
+plot_negative_regions(5, 200, cache[:10])
 
 # %% Print a form and its Hessian symbolically
 x, y, z = sp.symbols("x y z")
