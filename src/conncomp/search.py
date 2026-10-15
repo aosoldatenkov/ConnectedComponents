@@ -11,6 +11,11 @@ With --collect MIN the search also builds a pool: every exactly counted form wit
 apart within each oval count; the Euler screen then passes forms estimated near MIN as well (at most --screen-cap
 per batch). Output goes to output/ by default.
 
+With --seed FILE... the cache starts from the given forms (counted at --width; projected onto --symmetry), e.g. to
+explore the x-symmetric family around xy-symmetric 16-oval Hessians:
+
+    uv run conncomp-search --deg 6 --symmetry x --seed pools/hessian6_test/xy_genuine16.txt --uniform-share 0
+
     uv run conncomp-search --deg 6 --width 100
 """
 
@@ -25,7 +30,7 @@ import numpy as np
 import torch
 
 from conncomp import DEVICE
-from conncomp.io import save_coefs
+from conncomp.io import load_coefs, save_coefs
 from conncomp.pool import Collector, DiverseCache, descriptors
 from conncomp.polynomials import perturb, sample
 from conncomp.components import CountPipeline
@@ -38,7 +43,7 @@ PERTURB_RADIUS = 1e-1
 
 
 def loop(stdscr, deg, width, batch_size, filtr, use_hessian, out_path, min_comp=8, sym=None, screen=None,
-         slack=2, cap=50000, min_angle=10.0, uniform_share=1 / 3, collector=None):
+         slack=2, cap=50000, min_angle=10.0, uniform_share=1 / 3, collector=None, seeds=None):
     """Run the search until `q` is pressed; returns (forms, oval counts) of the cache, best first.
 
     Cache policy (conncomp.pool.DiverseCache): forms with at least max - 2 ovals (Hessian mode), or at least
@@ -55,6 +60,10 @@ def loop(stdscr, deg, width, batch_size, filtr, use_hessian, out_path, min_comp=
     iteration = 0
     max_comp_found = 0
     cache = DiverseCache(CACHE_LEN, min_angle)
+    if seeds is not None:  # (forms (D, B) on the GPU, oval counts (B,)): each seed starts its own lineage
+        sc, sn = seeds
+        cache.add(sc, descriptors(sc, deg, use_hessian), sn, [-1 - i for i in range(sc.shape[1])])
+        max_comp_found = int(max(sn))
     comp_counts = defaultdict(int)
 
     def screen_floor(mx):  # collect mode: also count forms near the collection minimum
@@ -147,6 +156,8 @@ def main(argv=None):
     p.add_argument("--screen-cap", type=int, default=50000, help="max forms counted exactly per batch (default: 50000)")
     p.add_argument("--min-angle", type=float, default=10.0,
                    help="minimal angle in degrees between cached forms (normalized curves; default: 10)")
+    p.add_argument("--seed", type=Path, nargs="+", default=None,
+                   help="coefficient files whose forms initialize the cache (projected onto --symmetry if given)")
     p.add_argument("--uniform-share", type=float, default=1 / 3, help="share of fresh uniform batches (default: 1/3)")
     p.add_argument("--collect", type=int, default=None, metavar="MIN",
                    help="also save every counted form with at least MIN ovals to <out stem>_ovals<n>.txt (appended "
@@ -171,9 +182,21 @@ def main(argv=None):
         screen.estimate(sample(args.deg, 10))  # compile before entering curses
     collector = (Collector(out, args.collect, args.dump_every, args.collect_angle, args.deg, use_hessian)
                  if args.collect is not None else None)
+    seeds = None
+    if args.seed:
+        sc = torch.as_tensor(np.asarray([c for fn in args.seed for c in load_coefs(fn)], dtype=np.float64).T,
+                             device=DEVICE)
+        if sym is not None:  # project onto the symmetric family (as perturb does for the children)
+            B = torch.as_tensor(np.asarray(sym.basis, dtype=np.float64), device=DEVICE)
+            sc = B @ (torch.linalg.pinv(B) @ sc)
+        sc = sc / sc.norm(dim=0, keepdim=True)
+        sn = np.asarray(Experiment(args.deg, args.width, use_hessian).count(sc, args.filter)) - 1
+        seeds = (sc, sn)
+        print(f"seeds: {sc.shape[1]} forms; oval counts at width {args.width}: "
+              f"{ {k: int((sn == k).sum()) for k in sorted(set(sn.tolist()), reverse=True)} }")
     best, counts = cr.wrapper(loop, args.deg, args.width, batch, args.filter, use_hessian, out, sym=sym,
                               screen=screen, slack=args.screen_slack, cap=args.screen_cap, min_angle=args.min_angle,
-                              uniform_share=args.uniform_share, collector=collector)
+                              uniform_share=args.uniform_share, collector=collector, seeds=seeds)
     out.parent.mkdir(parents=True, exist_ok=True)
     save_coefs(out, best)
     hist = {k: counts.count(k) for k in sorted(set(counts), reverse=True)}
